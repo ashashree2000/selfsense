@@ -1,5 +1,5 @@
 {
- "as_of": "2026-10-31",
+ "as_of": "2026-11-07",
  "data": "SYNTHETIC",
  "scores": [
   {
@@ -28,9 +28,9 @@
   },
   {
    "check": "ledger_balance_mismatch",
-   "planted": 10,
-   "flagged": 10,
-   "true_positives": 10,
+   "planted": 11,
+   "flagged": 11,
+   "true_positives": 11,
    "precision": 1.0,
    "recall": 1.0
   },
@@ -45,9 +45,9 @@
   {
    "check": "demand_spike",
    "planted": 9,
-   "flagged": 15,
+   "flagged": 14,
    "true_positives": 4,
-   "precision": 0.26666666666666666,
+   "precision": 0.2857142857142857,
    "recall": 0.4444444444444444
   },
   {
@@ -107,12 +107,13 @@
    "Ledger row 6192 (Golden Field Whisky 375ml, 2026-08-08): recorded balance 13, rebuilt balance 5",
    "Ledger row 4679 (Valley Red Wine, 2026-05-03): recorded balance 13, rebuilt balance 10",
    "Ledger row 3606 (Northfield Lager, 2026-02-21): recorded balance 41, rebuilt balance 33",
-   "Ledger row 2306 (Monsoon Strong Beer, 2025-12-01): recorded balance 84, rebuilt balance 89"
+   "Ledger row 2306 (Monsoon Strong Beer, 2025-12-01): recorded balance 84, rebuilt balance 89",
+   "Ledger row 7525 (Monsoon Strong Beer, 2026-11-03): recorded balance 52, rebuilt balance 55"
   ],
   "shrinkage": [
-   "Silver Crest Whisky 750ml: shelf count -4 vs ledger 0 (missing 4 units)",
-   "Copper Leaf Brandy 90ml: shelf count 22 vs ledger 28 (missing 6 units)",
-   "Northfield Lager: shelf count 88 vs ledger 97 (missing 9 units)"
+   "Silver Crest Whisky 750ml: shelf count 4 vs ledger 8 (missing 4 units)",
+   "Copper Leaf Brandy 90ml: shelf count 27 vs ledger 33 (missing 6 units)",
+   "Northfield Lager: shelf count -9 vs ledger 0 (missing 9 units)"
   ],
   "demand_spike": [
    "Spike: 150ml on 2025-08-03 sold 14 vs ~4 expected",
@@ -120,13 +121,12 @@
    "Spike: 150ml on 2026-04-12 sold 13 vs ~2 expected",
    "Spike: 150ml on 2026-04-18 sold 15 vs ~4 expected",
    "Spike: 150ml on 2026-06-23 sold 18 vs ~2 expected",
-   "Spike: 180ml on 2026-01-10 sold 44 vs ~24 expected",
    "Spike: 180ml on 2026-02-14 sold 53 vs ~29 expected",
    "Spike: 375ml on 2026-10-23 sold 17 vs ~4 expected",
    "Spike: 750ml on 2026-01-04 sold 11 vs ~3 expected",
-   "Spike: 90ml on 2025-12-13 sold 54 vs ~24 expected",
    "Spike: 90ml on 2026-07-01 sold 45 vs ~13 expected",
    "Spike: 90ml on 2026-07-16 sold 64 vs ~20 expected",
+   "Spike: 90ml on 2026-11-01 sold 60 vs ~24 expected",
    "Spike: Beer on 2026-08-29 sold 72 vs ~35 expected",
    "Spike: Beer on 2026-10-26 sold 50 vs ~12 expected",
    "Spike: Wine on 2026-02-28 sold 7 vs ~1 expected"
@@ -144,9 +144,9 @@
   "duplicate_sale": 7,
   "credit_sale_no_name": 10,
   "sale_at_zero_stock": 14,
-  "ledger_balance_mismatch": 10,
+  "ledger_balance_mismatch": 11,
   "shrinkage": 3,
-  "demand_spike": 15,
+  "demand_spike": 14,
   "demand_drop": 6
  }
 }

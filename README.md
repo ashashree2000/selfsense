@@ -42,7 +42,7 @@ flowchart LR
 ## Results
 
 <!-- RESULTS:START -->
-_Auto-generated from `reports/*.json` by `mlops/update_readme.py`. Data as of **2026-10-31**. All data is SYNTHETIC._
+_Auto-generated from `reports/*.json` by `mlops/update_readme.py`. Data as of **2026-11-07**. All data is SYNTHETIC._
 
 ### Forecast accuracy — holdout (last 28 days, never used for model selection)
 
@@ -50,25 +50,25 @@ Product-level daily forecasts, 14-day horizon. Stock-out and dry days excluded f
 
 | Model | WAPE | vs seasonal naive | MASE | Bias | 80% interval coverage |
 |---|---|---|---|---|---|
-| seasonal_naive | 67.4% | +0.0% | 1.079 | -4.9% | 81.4% |
-| moving_average | 53.6% | -20.4% | 0.873 | -12.2% | 76.6% |
-| holt_winters | 49.7% | -26.2% | 0.809 | -10.5% | 80.7% |
-| gbm | 49.2% | -26.9% | 0.796 | -16.1% | 81.2% |
-| selected_per_category | 49.3% | -26.9% | 0.797 | -14.8% | 80.9% |
+| seasonal_naive | 65.7% | +0.0% | 1.126 | -9.0% | 79.4% |
+| moving_average | 54.9% | -16.5% | 0.916 | -13.7% | 73.8% |
+| holt_winters | 49.8% | -24.2% | 0.843 | -15.4% | 77.4% |
+| gbm | 51.4% | -21.8% | 0.849 | -17.0% | 75.6% |
+| selected_per_category | 51.4% | -21.8% | 0.849 | -17.0% | 75.6% |
 
-Rolling-origin backtest (20 origins, 2025-12-27 → 2026-09-19): seasonal_naive WAPE 66.8%, moving_average WAPE 52.5%, holt_winters WAPE 50.5%, gbm WAPE 50.2%, selected_per_category WAPE 50.0%.
+Rolling-origin backtest (20 origins, 2026-01-03 → 2026-09-26): seasonal_naive WAPE 69.9%, moving_average WAPE 52.3%, holt_winters WAPE 50.9%, gbm WAPE 49.8%, selected_per_category WAPE 49.8%.
 
-Model selected per category (by backtest WAPE): 150ml → gbm, 180ml → gbm, 375ml → gbm, 750ml → gbm, 90ml → holt_winters, Beer → gbm, Wine → gbm.
+Model selected per category (by backtest WAPE): 150ml → gbm, 180ml → gbm, 375ml → gbm, 750ml → gbm, 90ml → gbm, Beer → gbm, Wine → gbm.
 
 **Festival days** (WAPE / bias):
 
 | Model | Backtest windows | Holdout |
 |---|---|---|
-| seasonal_naive | 59.8% / -45.6% (n=96) | 56.2% / -52.4% (n=36) |
-| moving_average | 51.9% / -38.5% (n=96) | 55.6% / -55.4% (n=36) |
-| holt_winters | 57.6% / -47.6% (n=96) | 52.0% / -50.2% (n=36) |
-| gbm | 49.9% / -25.1% (n=96) | 44.6% / -33.1% (n=36) |
-| selected_per_category | 53.6% / -34.7% (n=96) | 44.4% / -37.6% (n=36) |
+| seasonal_naive | 67.6% / -28.4% (n=81) | 62.8% / -60.4% (n=36) |
+| moving_average | 48.9% / -33.7% (n=81) | 57.2% / -57.2% (n=36) |
+| holt_winters | 52.1% / -40.0% (n=81) | 52.7% / -51.0% (n=36) |
+| gbm | 43.4% / -19.3% (n=81) | 49.7% / -45.1% (n=36) |
+| selected_per_category | 43.4% / -19.3% (n=81) | 49.7% / -45.1% (n=36) |
 
 ### Data-quality checks vs planted anomalies
 
@@ -77,21 +77,21 @@ Model selected per category (by backtest WAPE): 150ml → gbm, 180ml → gbm, 37
 | duplicate_sale | 7 | 7 | 100.0% | 100.0% |
 | credit_sale_no_name | 10 | 10 | 100.0% | 100.0% |
 | sale_at_zero_stock | 14 | 14 | 100.0% | 100.0% |
-| ledger_balance_mismatch | 10 | 10 | 100.0% | 100.0% |
+| ledger_balance_mismatch | 11 | 11 | 100.0% | 100.0% |
 | shrinkage | 3 | 3 | 100.0% | 100.0% |
-| demand_spike | 9 | 15 | 26.7% | 44.4% |
+| demand_spike | 9 | 14 | 28.6% | 44.4% |
 | demand_drop | 6 | 6 | 16.7% | 16.7% |
 
 The five rule-based checks are exact by construction on this synthetic data (each rule mirrors how the anomaly was planted). The statistical spike/drop detector is the honest test, and it is weak on low-count series.
 
-### Reorder policy — SIMULATED (2026-08-02 → 2026-10-31, 91 days, 16 products, true latent demand replayed)
+### Reorder policy — SIMULATED (2026-08-09 → 2026-11-07, 91 days, 16 products, true latent demand replayed)
 
 | Policy | Stock-out product-days | Lost units | Fill rate | Avg units on hand | Avg stock value (₹) | Orders |
 |---|---|---|---|---|---|---|
-| fixed | 149 | 805 | 89.4% | 357.0 | 45,465 | 148 |
-| forecast_sl90 | 43 | 250 | 96.7% | 420.6 | 54,573 | 210 |
-| forecast_sl95 | 32 | 241 | 96.8% | 449.2 | 59,013 | 211 |
-| forecast_sl98 | 31 | 223 | 97.1% | 487.4 | 65,087 | 211 |
+| fixed | 133 | 658 | 91.4% | 355.5 | 46,161 | 149 |
+| forecast_sl90 | 33 | 137 | 98.2% | 414.6 | 54,546 | 209 |
+| forecast_sl95 | 21 | 91 | 98.8% | 445.6 | 59,218 | 211 |
+| forecast_sl98 | 22 | 79 | 99.0% | 482.7 | 64,688 | 212 |
 
 ### Model registry & monitoring
 
@@ -101,7 +101,8 @@ The five rule-based checks are exact by construction on this synthetic data (eac
 | v20261010-cadbcdf | 2026-10-10 | 47.9% | 45.9% | rejected | candidate 0.4793 worse than champion 0.4593 beyond threshold |
 | v20261017-d3e4b23 | 2026-10-17 | 49.6% | 49.6% | archived | candidate 0.4961 <= champion 0.4965 x (1+0.02) |
 | v20261024-cf5c843 | 2026-10-24 | 49.1% | 49.4% | archived | candidate 0.4915 <= champion 0.4942 x (1+0.02) |
-| v20261031-eed90a8 | 2026-10-31 | 49.3% | 49.1% | production | candidate 0.4927 <= champion 0.4912 x (1+0.02) |
+| v20261031-eed90a8 | 2026-10-31 | 49.3% | 49.1% | archived | candidate 0.4927 <= champion 0.4912 x (1+0.02) |
+| v20261107-f26f9a6 | 2026-11-07 | 51.4% | 51.6% | production | candidate 0.5138 <= champion 0.5165 x (1+0.02) |
 
 Live accuracy of published forecasts (scored when the next week's data arrived):
 
@@ -111,8 +112,9 @@ Live accuracy of published forecasts (scored when the next week's data arrived):
 | 2026-10-10 | 2026-10-17 | v20261003-a55cdf0 | 53.4% | 48.6% |
 | 2026-10-17 | 2026-10-24 | v20261017-d3e4b23 | 42.8% | 49.6% |
 | 2026-10-24 | 2026-10-31 | v20261024-cf5c843 | 53.0% | 49.1% |
+| 2026-10-31 | 2026-11-07 | v20261031-eed90a8 | 50.5% | 49.3% |
 
-Latest drift check (2026-10-31): recent 28-day mean 73.2 units/day vs 71.4 before (shift 2.5%), KS p = 0.64907, live/holdout error ratio = 1.078 → **no alert**.
+Latest drift check (2026-11-07): recent 28-day mean 78.0 units/day vs 71.4 before (shift 9.2%), KS p = 0.28055, live/holdout error ratio = 1.025 → **no alert**.
 <!-- RESULTS:END -->
 
 ## What's in the repo
