@@ -54,7 +54,7 @@ def page(server):
 
 
 def test_demo_loads_synthetic_data_and_integrations_are_off(page):
-    assert "SYNTHETIC" in page.inner_text("#demoBanner")
+    assert "synthetic" in page.inner_text("#demoBanner")
     assert page.evaluate("DEMO_MODE") is True
     assert page.evaluate("sendTelegramMessage('x')") is False
     assert page.evaluate("initFirebaseIfNeeded()") is False
@@ -68,7 +68,7 @@ def test_insights_tab_renders(page):
     page.click('.navbtn[data-screen="insights"]')
     page.wait_for_selector("#insChart svg")
     txt = page.inner_text("#insightsRoot")
-    assert "Model version" in txt and "SYNTHETIC" in txt
+    assert "Forecast error" in txt and "Reorder now" in txt
     page.select_option("#insKind", "product")
     page.wait_for_selector("#insChart svg")
     assert page.external_requests == []
@@ -77,7 +77,7 @@ def test_insights_tab_renders(page):
 def test_reorder_prefills_purchase_grid(page):
     page.click('.navbtn[data-screen="insights"]')
     page.wait_for_selector("#insChart svg")
-    btns = page.locator("text=Pre-fill purchase grid")
+    btns = page.locator("text=Fill purchase order")
     if btns.count() == 0:
         pytest.skip("no reorder needed in the published snapshot")
     btns.first.click()

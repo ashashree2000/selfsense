@@ -35,9 +35,9 @@ CATEGORIES = ["90ml", "150ml", "180ml", "375ml", "750ml", "Wine", "Beer"]
 EXPENSE_CATEGORIES = ["Rent", "Electricity", "Salary", "Transport", "Maintenance", "Licence/Excise Fee", "Other"]
 
 SUPPLIERS = [
-    {"id": 1, "name": "Demo Distributors (Synthetic)", "phone": "0000000001", "address": "Synthetic address 1", "gst": ""},
-    {"id": 2, "name": "Sample Beverages Co. (Synthetic)", "phone": "0000000002", "address": "Synthetic address 2", "gst": ""},
-    {"id": 3, "name": "Example Wines & Beers (Synthetic)", "phone": "0000000003", "address": "Synthetic address 3", "gst": ""},
+    {"id": 1, "name": "Demo Distributors", "phone": "0000000001", "address": "Synthetic address 1", "gst": ""},
+    {"id": 2, "name": "Sample Beverages Co.", "phone": "0000000002", "address": "Synthetic address 2", "gst": ""},
+    {"id": 3, "name": "Example Wines & Beers", "phone": "0000000003", "address": "Synthetic address 3", "gst": ""},
 ]
 
 # (base name, category, cost, sell, base daily demand, supplier, lead_time_days, seasonal profile)
@@ -102,7 +102,7 @@ def simulate_world(seed: int = SEED) -> World:
         })
 
     db = {
-        "settings": {"shopName": "SelfSense Demo Shop (Synthetic)", "currency": "₹", "lowStockDefault": 6,
+        "settings": {"shopName": "SelfSense Demo Shop", "currency": "₹", "lowStockDefault": 6,
                      "cashInHand": 0, "bankBalance": 0,
                      "telegramBotToken": "", "telegramChatId": "", "telegramEnabled": False,
                      "lastTgSend2pm": "", "lastTgSend9pm": "",
@@ -318,7 +318,7 @@ def export(world: World, as_of: str, out_root: Path = ROOT / "data") -> dict:
     led = pd.DataFrame(db["stockLedger"])
     bal = led.groupby("productId")["qtyChange"].sum().to_dict()
     for p in db["products"]:
-        p["stockQty"] = int(bal.get(p["id"], 0)) + SHRINKAGE.get(p["id"], 0)
+        p["stockQty"] = max(0, int(bal.get(p["id"], 0)) + SHRINKAGE.get(p["id"], 0))
     # counters consistent with exported ids
     mx = lambda arr: max([int(r["id"]) for r in arr], default=0)  # noqa: E731
     db["counters"] = {"product": mx(db["products"]), "supplier": mx(db["suppliers"]), "purchase": mx(db["purchases"]),
@@ -338,7 +338,7 @@ def export(world: World, as_of: str, out_root: Path = ROOT / "data") -> dict:
         "ledger_balance_mismatch": [i for i in a["ledger_balance_mismatch"] if i in led_ids],
         "demand_spike": [x for x in a["demand_spike"] if x["date"] <= as_of],
         "demand_drop": [x for x in a["demand_drop"] if x["date"] <= as_of],
-        "shrinkage": sorted(SHRINKAGE.keys()),
+        "shrinkage": sorted(p["id"] for p in db["products"] if p["stockQty"] != int(bal.get(p["id"], 0))),
     }
     raw = out_root / "raw"
     truth = out_root / "truth"

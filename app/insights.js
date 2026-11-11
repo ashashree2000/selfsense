@@ -11,6 +11,7 @@
   let selKind = "category", selKey = null;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (typeof escapeHtml === "function" ? escapeHtml(String(s)) : String(s));
+  const MODEL = { gbm: "gradient boosting", holt_winters: "Holt-Winters", moving_average: "moving average", seasonal_naive: "seasonal naive" };
   const pct = (x) => (x == null || isNaN(x) ? "—" : (x * 100).toFixed(1) + "%");
 
   async function loadDemoData(silent) {
@@ -21,7 +22,7 @@
       saveToLocalStorage();
       localStorage.setItem("selfsenseDemoLoaded", "1");
       renderAll();
-      if (!silent) toast("Synthetic demo data loaded", "ok");
+      if (!silent) toast("Demo data reset", "ok");
     } catch (e) {
       console.warn("demo data load failed", e);
       if (!silent) toast("Could not load demo data", "err");
@@ -76,15 +77,15 @@
     if (selKind === "category") {
       const c = INS.category_forecast.find((x) => x.category === selKey) || INS.category_forecast[0];
       h = c.history; f = { dates: c.dates, yhat: c.yhat, lo: c.lo_sum, hi: c.hi_sum };
-      title = `Category ${esc(c.category)} · model: ${esc(c.model)} · band = sum of product intervals (conservative)`;
+      title = `${esc(c.category)} · ${esc(MODEL[c.model] || c.model)}`;
     } else {
       const p = INS.products.find((x) => String(x.productId) === String(selKey)) || INS.products[0];
       h = p.history; f = p.forecast;
-      title = `${esc(p.name)} · model: ${esc(p.model)} · 80% interval`;
+      title = `${esc(p.name)} · ${esc(MODEL[p.model] || p.model)}`;
     }
     return `<p class="help">${title}</p>` +
       `<div class="table-wrap" style="padding:8px;">${svgForecastChart(h.dates, h.units, f.dates, f.yhat, f.lo, f.hi, 760, 260)}</div>` +
-      `<p class="help"><span style="color:#7b1e3a;">━ units sold (last 6 weeks)</span> &nbsp; <span style="color:#b9770e;">╍ forecast next ${INS.meta.horizon_days} days</span> &nbsp; <span style="background:#f3e3bd;padding:0 6px;">80% interval</span></p>`;
+      `<p class="help"><span style="color:#7b1e3a;">━ sold</span> &nbsp; <span style="color:#b9770e;">╍ forecast</span> &nbsp; <span style="background:#f3e3bd;padding:0 6px;">80% range</span></p>`;
   }
 
   function prefillPurchase(supplierId) {
@@ -96,13 +97,13 @@
       mapped.push({ productId: p.id, productName: p.name, category: p.category, barcode: p.barcode || "",
         qty: String(s.suggested_qty), rate: String(p.costPrice), amount: (s.suggested_qty * p.costPrice).toFixed(2) });
     });
-    if (!mapped.length) { toast("These products aren't in the loaded data — load the synthetic demo data first", "err"); return; }
+    if (!mapped.length) { toast("Reset the demo data first", "err"); return; }
     purchaseRows = mapped.concat([blankPurchaseRow()]);
     showScreen("purchase");
     const sel = $("purchaseSupplier");
     if (sel) sel.value = String(supplierId);
     renderPurchaseGrid();
-    toast(`Pre-filled ${mapped.length} rows — review and save the voucher yourself`, "ok");
+    toast(`Added ${mapped.length} items to the purchase order`, "ok");
   }
   window.selfsensePrefill = prefillPurchase;
 
@@ -110,57 +111,49 @@
     const root = $("insightsRoot");
     if (!INS) { root.innerHTML = '<p class="help">Insights not available.</p>'; return; }
     const m = INS.model_info, mon = INS.monitoring, q = INS.quality;
-    const imp = 1 - m.holdout_wape_selected / m.holdout_wape_seasonal_naive;
     const supName = (id) => { const s = (DB.suppliers || []).find((x) => String(x.id) === String(id)); return s ? s.name : "Supplier " + id; };
     const need = INS.reorder_suggestions.filter((s) => s.suggested_qty > 0);
     const bySup = {};
     need.forEach((s) => { (bySup[s.supplierId] = bySup[s.supplierId] || []).push(s); });
 
-    let h = `<h1>🔮 Insights <span class="tag tag-med" style="vertical-align:middle;">SYNTHETIC DATA</span></h1>
-    <div class="banner info"><div style="flex:1;">Forecasts and checks below come from the offline ML pipeline (published as <code>forecasts.json</code>, data as of <b>${esc(INS.meta.as_of)}</b>). They describe the synthetic demo dataset — reload it if you changed the data.</div>
-      <button class="btn btn-flat btn-sm" onclick="selfsenseLoadDemoData()">↺ Reload synthetic demo data</button></div>
+    let h = `<h1>🔮 Insights</h1>
+    <p class="help">Data up to ${esc(INS.meta.as_of)} · model ${esc(m.version)} ·
+      <a href="#" onclick="selfsenseLoadDemoData();return false;">reset demo data</a></p>
     <div class="cards">
-      <div class="card"><div class="label">Model version</div><div class="value" style="font-size:1.05rem;">${esc(m.version)}</div><div class="sub">trained through ${esc(m.trained_through)} · ${m.registry_versions} versions in registry</div></div>
-      <div class="card good"><div class="label">Holdout WAPE (selected)</div><div class="value">${pct(m.holdout_wape_selected)}</div><div class="sub">seasonal-naive baseline ${pct(m.holdout_wape_seasonal_naive)} · ${(imp * 100).toFixed(0)}% lower error</div></div>
-      <div class="card"><div class="label">80% interval coverage</div><div class="value">${pct(m.holdout_coverage_80)}</div><div class="sub">share of holdout days inside the band</div></div>
-      <div class="card ${mon.drift.alert ? "bad" : "good"}"><div class="label">Drift check</div><div class="value" style="font-size:1.2rem;">${mon.drift.alert ? "⚠️ Alert" : "✓ OK"}</div><div class="sub">mean shift ${pct(mon.drift.mean_shift)} · KS p=${mon.drift.ks_pvalue}</div></div>
+      <div class="card good"><div class="label">Forecast error (WAPE)</div><div class="value">${pct(m.holdout_wape_selected)}</div><div class="sub">baseline ${pct(m.holdout_wape_seasonal_naive)}</div></div>
+      <div class="card"><div class="label">Days inside 80% range</div><div class="value">${pct(m.holdout_coverage_80)}</div><div class="sub">last 28 days</div></div>
+      <div class="card ${mon.drift.alert ? "bad" : "good"}"><div class="label">Drift</div><div class="value" style="font-size:1.3rem;">${mon.drift.alert ? "⚠️ Check" : "✓ None"}</div><div class="sub">recent vs past sales</div></div>
     </div>
-    <div class="section-title"><h2>📝 Owner's weekly brief</h2></div>
-    <div class="banner ok">${esc(INS.brief.text)}<div class="help" style="margin-top:6px;">source: ${esc(INS.brief.source)}${INS.brief.llm && INS.brief.llm.used ? ` · ${INS.brief.llm.latency_ms} ms` : " (template — no LLM call)"}</div></div>
+    <div class="banner ok">${esc(INS.brief.text)}</div>
 
-    <div class="section-title"><h2>📈 Demand forecast</h2></div>
+    <div class="section-title"><h2>📈 Next 14 days</h2></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
       <select id="insKind" style="padding:8px;border-radius:8px;"><option value="category">By category</option><option value="product">By product</option></select>
       <select id="insKey" style="padding:8px;border-radius:8px;min-width:220px;"></select>
     </div>
     <div id="insChart">${chartBlock()}</div>
 
-    <div class="section-title"><h2>🛒 Reorder suggestions</h2></div>
-    <p class="help">Reorder point = forecast demand over lead time + 1 day, plus safety stock from forecast error (95% service level); order up to 7 more days of forecast demand. "Fixed rule" = the app's current reorderLevel check.</p>`;
-    if (!need.length) h += `<p class="help">No product is at or below its reorder point today.</p>`;
+    <div class="section-title"><h2>🛒 Reorder now</h2></div>`;
+    if (!need.length) h += `<p class="help">Nothing to reorder today.</p>`;
     Object.keys(bySup).forEach((sid) => {
       h += `<h3 style="margin:14px 0 6px;">${esc(supName(sid))}</h3>
-      <div class="table-wrap"><table><thead><tr><th>Product</th><th>Stock</th><th>Days of cover</th><th>Reorder point</th><th>Suggested qty</th><th>Fixed rule would order?</th></tr></thead><tbody>` +
-        bySup[sid].map((s) => `<tr><td>${esc(s.productName)}</td><td>${s.current_stock}</td><td>${s.days_of_cover ?? "—"}</td><td>${s.reorder_point}</td><td><b>${s.suggested_qty}</b></td><td>${s.fixed_rule_would_order ? '<span class="tag tag-ok">yes</span>' : '<span class="tag tag-low">no</span>'}</td></tr>`).join("") +
-        `</tbody></table></div><button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="selfsensePrefill('${esc(sid)}')">📋 Pre-fill purchase grid for this supplier</button>`;
+      <div class="table-wrap"><table><thead><tr><th>Product</th><th>In stock</th><th>Days left</th><th>Order</th></tr></thead><tbody>` +
+        bySup[sid].map((s) => `<tr><td>${esc(s.productName)}</td><td>${s.current_stock}</td><td>${s.days_of_cover ?? "—"}</td><td><b>${s.suggested_qty}</b></td></tr>`).join("") +
+        `</tbody></table></div><button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="selfsensePrefill('${esc(sid)}')">Fill purchase order</button>`;
     });
 
-    h += `<div class="section-title"><h2>🧪 Data-quality alerts</h2></div><div class="stat-strip">` +
-      Object.entries(q.counts).map(([k, v]) => `<div class="stat-chip ${v ? "bad" : ""}"><div class="l">${esc(k.replace(/_/g, " "))}</div><div class="v">${v}</div></div>`).join("") + `</div>`;
-    const alertList = Object.entries(q.alerts).flatMap(([k, arr]) => arr.slice(-3).map((a) => `<li><span class="tag tag-cat">${esc(k.replace(/_/g, " "))}</span> ${esc(a)}</li>`));
-    h += `<ul style="font-size:0.9rem;line-height:1.6;">${alertList.join("")}</ul>
-    <details><summary class="help">Check accuracy vs planted anomalies (precision / recall)</summary><div class="table-wrap"><table><thead><tr><th>Check</th><th>Planted</th><th>Flagged</th><th>Precision</th><th>Recall</th></tr></thead><tbody>` +
-      q.scores.map((s) => `<tr><td>${esc(s.check)}</td><td>${s.planted}</td><td>${s.flagged}</td><td>${pct(s.precision)}</td><td>${pct(s.recall)}</td></tr>`).join("") + `</tbody></table></div></details>`;
+    const flagged = Object.entries(q.counts).filter(([, v]) => v > 0);
+    h += `<div class="section-title"><h2>🧪 Data checks</h2></div><div class="stat-strip">` +
+      flagged.map(([k, v]) => `<div class="stat-chip bad"><div class="l">${esc(k.replace(/_/g, " "))}</div><div class="v">${v}</div></div>`).join("") + `</div>`;
+    const alertList = Object.values(q.alerts).flatMap((arr) => arr.slice(-1)).slice(0, 6);
+    h += `<ul style="font-size:0.9rem;line-height:1.6;">${alertList.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`;
 
-    h += `<div class="section-title"><h2>📡 Model monitoring</h2></div>
-    <p class="help">Each weekly retrain scores the previously published forecast against the days that have since arrived.</p>
-    <div class="table-wrap"><table><thead><tr><th>Forecast made</th><th>Scored through</th><th>Model</th><th>Live WAPE</th><th>Holdout WAPE at training</th></tr></thead><tbody>` +
-      (mon.history.length ? mon.history.map((x) => `<tr><td>${esc(x.forecast_made_at)}</td><td>${esc(x.scored_through)}</td><td>${esc(x.model_version)}</td><td>${pct(x.live_wape)}</td><td>${pct(x.holdout_wape_of_model)}</td></tr>`).join("")
-        : `<tr><td colspan="5">No live scores yet.</td></tr>`) + `</tbody></table></div>
-    <p class="help">Drift rule: ${esc(mon.drift.rule)}. Recent ${mon.drift.recent_window_days}-day mean ${mon.drift.recent_mean_daily_units} units/day vs training ${mon.drift.training_mean_daily_units}.</p>
-    <details><summary class="help">All models on the holdout</summary><div class="table-wrap"><table><thead><tr><th>Model</th><th>WAPE</th><th>MASE</th><th>Bias</th><th>80% coverage</th></tr></thead><tbody>` +
-      m.holdout_overall.map((r) => `<tr><td>${esc(r.model)}</td><td>${pct(r.wape)}</td><td>${r.mase.toFixed(3)}</td><td>${pct(r.bias)}</td><td>${pct(r.coverage_80)}</td></tr>`).join("") +
-      `</tbody></table></div></details>`;
+    if (mon.history.length) {
+      h += `<div class="section-title"><h2>📡 Accuracy by week</h2></div>
+      <div class="table-wrap"><table><thead><tr><th>Week ending</th><th>Model</th><th>Error (WAPE)</th></tr></thead><tbody>` +
+        mon.history.slice(-6).map((x) => `<tr><td>${esc(x.scored_through)}</td><td>${esc(x.model_version)}</td><td>${pct(x.live_wape)}</td></tr>`).join("") +
+        `</tbody></table></div>`;
+    }
     root.innerHTML = h;
 
     const kind = $("insKind"), key = $("insKey");

@@ -18,3 +18,4 @@ test-results/
 
 # local scratch (safe to delete)
 _to_delete/
+.DS_Store
