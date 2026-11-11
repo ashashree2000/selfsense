@@ -35,9 +35,9 @@ CATEGORIES = ["90ml", "150ml", "180ml", "375ml", "750ml", "Wine", "Beer"]
 EXPENSE_CATEGORIES = ["Rent", "Electricity", "Salary", "Transport", "Maintenance", "Licence/Excise Fee", "Other"]
 
 SUPPLIERS = [
-    {"id": 1, "name": "Demo Distributors", "phone": "0000000001", "address": "Synthetic address 1", "gst": ""},
-    {"id": 2, "name": "Sample Beverages Co.", "phone": "0000000002", "address": "Synthetic address 2", "gst": ""},
-    {"id": 3, "name": "Example Wines & Beers", "phone": "0000000003", "address": "Synthetic address 3", "gst": ""},
+    {"id": 1, "name": "Eastern Spirits Distributors", "phone": "", "address": "Guwahati", "gst": ""},
+    {"id": 2, "name": "Kamrup Beverages", "phone": "", "address": "Guwahati", "gst": ""},
+    {"id": 3, "name": "Valley Wine & Beer Traders", "phone": "", "address": "Guwahati", "gst": ""},
 ]
 
 # (base name, category, cost, sell, base daily demand, supplier, lead_time_days, seasonal profile)
@@ -59,6 +59,10 @@ PRODUCT_SPECS = [
     ("Northfield Lager", "Beer", 110, 150, 10.0, 3, 4, "beer"),
     ("Monsoon Strong Beer", "Beer", 120, 165, 8.0, 3, 4, "beer"),
 ]
+
+LOSS_KINDS = [("Breakage - Loading/Unloading", "Bottle broken while unloading"),
+              ("Breakage - In Transit", "Cracked in transit"),
+              ("Leakage", "Seal leaking, removed from shelf")]
 
 DOW = np.array([0.85, 0.80, 0.85, 0.95, 1.15, 1.40, 1.30])  # Mon..Sun
 
@@ -102,7 +106,7 @@ def simulate_world(seed: int = SEED) -> World:
         })
 
     db = {
-        "settings": {"shopName": "SelfSense Demo Shop", "currency": "₹", "lowStockDefault": 6,
+        "settings": {"shopName": "City Wine Store", "currency": "₹", "lowStockDefault": 6,
                      "cashInHand": 0, "bankBalance": 0,
                      "telegramBotToken": "", "telegramChatId": "", "telegramEnabled": False,
                      "lastTgSend2pm": "", "lastTgSend9pm": "",
@@ -129,7 +133,7 @@ def simulate_world(seed: int = SEED) -> World:
     # Opening stock
     for p in products:
         p["stockQty"] = int(p["_orderQty"] * 1.5)
-        ledger(_iso(WORLD_START, 3, 0), p, "Opening Stock", p["stockQty"], "SEED", "Initial stock (synthetic)")
+        ledger(_iso(WORLD_START, 3, 0), p, "Opening Stock", p["stockQty"], "SEED", "Opening stock")
     C["product"] = len(products)
     C["supplier"] = len(SUPPLIERS)
 
@@ -150,7 +154,7 @@ def simulate_world(seed: int = SEED) -> World:
 
     pending = []  # (arrival_day_idx, product, qty, invoiceNo)
     latent_rows = []
-    customers = ["Customer A", "Customer B", "Customer C", "Customer D", "Customer E"]
+    customers = ["Rakesh Das", "Bipul Kalita", "Manoj Sharma", "Dipankar Bora", "Anil Deka"]
     credit_outstanding = {c: 0.0 for c in customers}
     supplier_due = {s["id"]: 0.0 for s in SUPPLIERS}
 
@@ -242,7 +246,8 @@ def simulate_world(seed: int = SEED) -> World:
             # occasional breakage
             if p["stockQty"] > 5 and rng.random() < 0.004:
                 p["stockQty"] -= 1
-                ledger(_iso(d, 16, 0), p, "Loss: Breakage - In Transit", -1, "LOSS", "synthetic")
+                kind, note = LOSS_KINDS[(di + p["id"]) % len(LOSS_KINDS)]
+                ledger(_iso(d, 16, 0), p, "Loss: " + kind, -1, "LOSS", note)
 
             # owner's historical fixed-reorder rule
             on_order = sum(x[2] for x in pending if x[1] is p)
@@ -281,14 +286,14 @@ def simulate_world(seed: int = SEED) -> World:
             for cust, due in credit_outstanding.items():
                 if due > 0:
                     db["payments"].append({"id": nid("payment"), "date": _iso(d, 13, 0), "type": "CustomerPayment",
-                                           "partyName": cust, "amount": round(due, 2), "notes": "synthetic"})
+                                           "partyName": cust, "amount": round(due, 2), "notes": "Credit settled"})
                     credit_outstanding[cust] = 0.0
         if d.day in (1, 15):
             for sid, due in supplier_due.items():
                 if due > 0:
                     db["payments"].append({"id": nid("payment"), "date": _iso(d, 6, 0), "type": "SupplierPayment",
                                            "partyName": SUPPLIERS[sid - 1]["name"], "amount": round(due, 2),
-                                           "notes": "synthetic"})
+                                           "notes": "Payment against invoices"})
                     supplier_due[sid] = 0.0
 
     for p in products:

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SelfSense — Retail POS + Forecasting Demo</title>
+<title>SelfSense</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#5a1229">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -237,13 +237,12 @@
   </div>
 </div>
 
-<div id="demoBanner" style="background:#215d9c;color:#fff;font-size:13px;padding:6px 12px;text-align:center;position:relative;z-index:60;">Demo with synthetic data · cloud backup and sync are off · see <b>Insights</b></div>
 <div id="topbar">
   <div class="brand"><span class="logo">🍷</span><span id="shopNameDisplay">Wine Shop Manager</span></div>
   <div class="actions">
     <span id="saveStatus"></span>
     <span class="excel-pill on" id="netPill" title="Every change saves to this device instantly either way — this only affects cloud backups/sync"><span class="dot"></span><span id="netPillText">Online</span></span>
-    <span class="excel-pill off" id="excelPill" title="Tap to manage Excel connection"><span class="dot"></span><span id="excelPillText">Excel: Not Connected</span></span>
+    <span class="excel-pill off" id="excelPill" title="Tap to manage Excel connection"><span class="dot"></span><span id="excelPillText">Saved in this browser</span></span>
   </div>
 </div>
 
@@ -573,8 +572,8 @@
     <div class="field"><label>PIN (4–8 digits/letters)</label><input type="text" id="setAppPin" placeholder="e.g. 4821"></div>
     <button class="btn btn-flat" id="btnSaveAppPin">💾 Save PIN</button>
 
+<div hidden>
     <div class="section-title"><h2>🔄 Live Multi-Device Sync (optional)</h2></div>
-<div class="banner info" style="background:#fdeceb;border-color:#f3c1bb;color:#8a2a1f;">Turned off in this demo.</div>
     <div class="banner info">💡 Turn this on if more than one person/device needs to see the <b>same</b> live sales and stock data at once (e.g. two billing counters, or owner checking from home while staff bills in the shop). Without this, each device keeps its own local copy, synced only through nightly backups — which is simpler and works fine for a single till. See the guide for exact one-time setup steps (free Firebase project).</div>
     <div class="field"><label>Firebase config (paste the full snippet from your Firebase console)</label><textarea id="setFirebaseConfig" rows="4" style="width:100%;padding:10px;border-radius:10px;border:2px solid var(--border);font-family:monospace;font-size:12px;" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea></div>
     <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -584,6 +583,7 @@
     </div>
     <div id="firebaseStatusLine" class="help" style="margin-top:10px;"></div>
 
+</div>
     <div class="section-title"><h2>🤝 Suppliers</h2></div>
     <div class="table-wrap"><table>
       <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>GST No.</th><th></th></tr></thead>
@@ -593,7 +593,7 @@
     <button class="btn btn-flat" id="btnAddSupplier" style="margin-top:10px;">➕ Add Supplier</button>
 
     <div class="section-title"><h2>📁 Excel File (Auto-Save Backend)</h2></div>
-    <div class="banner info">💡 <b>If this computer breaks or is lost, this Excel file is your only local copy.</b> For free protection: (1) when connecting below, choose a location inside your <b>Google Drive</b> or <b>OneDrive</b> desktop-sync folder if you have one installed — it will then back up to the cloud automatically at no cost, or (2) turn on the Telegram backup further down, which sends a copy of this file to your phone/group every night for free.</div>
+    <p class="help">Everything is saved in this browser automatically. To also keep the data in an Excel file on this computer, connect one below, or download a copy at any time.</p>
     <p class="help" id="fsApiHelp"></p>
     <div style="display:flex; gap:10px; flex-wrap:wrap;">
       <button class="btn btn-gold" id="btnConnectExcel">🔗 Connect / Change Excel File</button>
@@ -602,8 +602,8 @@
     </div>
     <div id="excelStatusLine" class="help" style="margin-top:10px;"></div>
 
+<div hidden>
     <div class="section-title"><h2>☁️ Google Drive Backup (automatic)</h2></div>
-<div class="banner info" style="background:#fdeceb;border-color:#f3c1bb;color:#8a2a1f;">Turned off in this demo.</div>
     <p class="help">On top of the local Excel file, this can push a copy straight to your own Google Drive automatically — no desktop sync app required, works from any device. One-time setup: create a free Google OAuth Client ID for this app (see the README for the exact steps) and paste it below.</p>
     <div class="field"><label>Google OAuth Client ID</label><input type="text" id="setGdriveClientId" placeholder="xxxxxxxxxx.apps.googleusercontent.com"></div>
     <div class="field"><label><input type="checkbox" id="setGdriveEnabled" style="width:auto;"> Auto-backup to Drive a little while after every change</label></div>
@@ -615,7 +615,6 @@
     <div id="gdriveStatusLine" class="help" style="margin-top:10px;"></div>
 
     <div class="section-title"><h2>🤖 Telegram Daily Summary &amp; Free Backup</h2></div>
-<div class="banner info" style="background:#fdeceb;border-color:#f3c1bb;color:#8a2a1f;">Turned off in this demo.</div>
     <p class="help">Get an automatic business summary sent to a Telegram chat or group at 2:00 PM and 9:00 PM — as long as this app is open in a browser tab at that time. The 9 PM message also carries your Excel file as an attachment, so a copy of your data lands somewhere other than the shop's computer every night, for free. Create a free bot via <b>@BotFather</b> on Telegram to get a token, then add your bot to your group and get the chat ID (e.g. via @userinfobot or @getidsbot).</p>
     <div class="field"><label>Telegram Bot Token</label><input type="text" id="setTgToken" placeholder="123456:ABC-DEF..."></div>
     <div class="field"><label>Telegram Chat ID(s) — comma-separated for multiple people/groups</label><input type="text" id="setTgChatId" placeholder="e.g. 123456789, -1001234567890"></div>
@@ -627,6 +626,7 @@
       <button class="btn btn-gold" id="btnBackupNow">📁 Backup Excel to Telegram Now</button>
     </div>
     <div id="tgStatusLine" class="help" style="margin-top:6px;"></div>
+</div>
   </div>
 
 </main>
@@ -2514,7 +2514,7 @@ function updateExcelPill(state){
   pill.classList.remove('on','off');
   if(state==='on'){ pill.classList.add('on'); text.textContent = 'Excel: Connected'; banner.classList.add('hidden'); }
   else if(state==='reconnect'){ pill.classList.add('off'); text.textContent = 'Excel: Reconnect needed'; banner.classList.remove('hidden'); }
-  else { pill.classList.add('off'); text.textContent = 'Excel: Not Connected'; banner.classList.add('hidden'); }
+  else { pill.classList.add('on'); text.textContent = 'Saved in this browser'; banner.classList.add('hidden'); }
   renderExcelStatus();
 }
 function renderExcelStatus(){
@@ -2861,6 +2861,6 @@ function checkAccessLock(){
 })();
 </script>
 <script src="insights.js"></script>
-<footer class="note">SelfSense demo · synthetic data</footer>
+<footer class="note">All shop data in this app is generated sample data.</footer>
 </body>
 </html>

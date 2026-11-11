@@ -18,15 +18,12 @@ GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 def template_brief(payload: dict) -> str:
     sug = [s for s in payload["reorder_suggestions"] if s["suggested_qty"] > 0]
     top = sorted(payload["category_forecast"], key=lambda c: -sum(c["yhat"]))[:3]
-    issues = sum(payload["quality"]["counts"].values())
     lines = ["Next 7 days: " + ", ".join(f"{c['category']} ~{round(sum(c['yhat'][:7]))}" for c in top) + " units."]
     if sug:
         lines.append(f"Reorder {len(sug)} products, mainly " + ", ".join(
             f"{s['productName']} ({s['suggested_qty']})" for s in sug[:3]) + ".")
     else:
         lines.append("Nothing to reorder.")
-    if issues:
-        lines.append(f"{issues} data issues to review.")
     if payload.get("monitoring", {}).get("drift", {}).get("alert"):
         lines.append("Sales have shifted recently, so forecasts may be less reliable.")
     return " ".join(lines)

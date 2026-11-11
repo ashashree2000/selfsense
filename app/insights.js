@@ -11,7 +11,6 @@
   let selKind = "category", selKey = null;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => (typeof escapeHtml === "function" ? escapeHtml(String(s)) : String(s));
-  const MODEL = { gbm: "gradient boosting", holt_winters: "Holt-Winters", moving_average: "moving average", seasonal_naive: "seasonal naive" };
   const pct = (x) => (x == null || isNaN(x) ? "—" : (x * 100).toFixed(1) + "%");
 
   async function loadDemoData(silent) {
@@ -22,10 +21,10 @@
       saveToLocalStorage();
       localStorage.setItem("selfsenseDemoLoaded", "1");
       renderAll();
-      if (!silent) toast("Demo data reset", "ok");
+      if (!silent) toast("Sample data reset", "ok");
     } catch (e) {
       console.warn("demo data load failed", e);
-      if (!silent) toast("Could not load demo data", "err");
+      if (!silent) toast("Could not load sample data", "err");
     }
   }
   window.selfsenseLoadDemoData = loadDemoData;
@@ -59,12 +58,12 @@
     const off = hDates.length;
     const band = fDates.map((_, j) => `${xOf(off + j)},${yOf(hi[j])}`).join(" ") + " " +
       fDates.map((_, j) => `${xOf(off + fDates.length - 1 - j)},${yOf(lo[fDates.length - 1 - j])}`).join(" ");
-    s += `<polygon points="${band}" fill="#c9971c" fill-opacity="0.22" stroke="none"><title>80% interval</title></polygon>`;
+    s += `<polygon points="${band}" fill="#c9971c" fill-opacity="0.22" stroke="none"><title>likely range</title></polygon>`;
     s += `<line x1="${xOf(off - 0.5)}" y1="${padT}" x2="${xOf(off - 0.5)}" y2="${padT + innerH}" stroke="#6b615c" stroke-dasharray="4 4"/>`;
     s += `<polyline points="${hVals.map((v, i) => `${xOf(i)},${yOf(v)}`).join(" ")}" fill="none" stroke="#7b1e3a" stroke-width="2.2"/>`;
     s += `<polyline points="${yhat.map((v, j) => `${xOf(off + j)},${yOf(v)}`).join(" ")}" fill="none" stroke="#b9770e" stroke-width="2.4" stroke-dasharray="6 3"/>`;
     yhat.forEach((v, j) => {
-      s += `<circle cx="${xOf(off + j)}" cy="${yOf(v)}" r="3" fill="#b9770e"><title>${fDates[j]}: forecast ${v.toFixed(1)} (80%: ${lo[j].toFixed(1)}–${hi[j].toFixed(1)})</title></circle>`;
+      s += `<circle cx="${xOf(off + j)}" cy="${yOf(v)}" r="3" fill="#b9770e"><title>${fDates[j]}: expected ${v.toFixed(1)} (likely ${lo[j].toFixed(1)}–${hi[j].toFixed(1)})</title></circle>`;
     });
     hVals.forEach((v, i) => {
       s += `<circle cx="${xOf(i)}" cy="${yOf(v)}" r="2.4" fill="#7b1e3a"><title>${hDates[i]}: sold ${v}</title></circle>`;
@@ -77,15 +76,14 @@
     if (selKind === "category") {
       const c = INS.category_forecast.find((x) => x.category === selKey) || INS.category_forecast[0];
       h = c.history; f = { dates: c.dates, yhat: c.yhat, lo: c.lo_sum, hi: c.hi_sum };
-      title = `${esc(c.category)} · ${esc(MODEL[c.model] || c.model)}`;
+      title = `${esc(c.category)}`;
     } else {
       const p = INS.products.find((x) => String(x.productId) === String(selKey)) || INS.products[0];
       h = p.history; f = p.forecast;
-      title = `${esc(p.name)} · ${esc(MODEL[p.model] || p.model)}`;
+      title = `${esc(p.name)}`;
     }
-    return `<p class="help">${title}</p>` +
-      `<div class="table-wrap" style="padding:8px;">${svgForecastChart(h.dates, h.units, f.dates, f.yhat, f.lo, f.hi, 760, 260)}</div>` +
-      `<p class="help"><span style="color:#7b1e3a;">━ sold</span> &nbsp; <span style="color:#b9770e;">╍ forecast</span> &nbsp; <span style="background:#f3e3bd;padding:0 6px;">80% range</span></p>`;
+    return `<div class="table-wrap" style="padding:8px;">${svgForecastChart(h.dates, h.units, f.dates, f.yhat, f.lo, f.hi, 760, 260)}</div>` +
+      `<p class="help"><span style="color:#7b1e3a;">━ sold</span> &nbsp; <span style="color:#b9770e;">╍ expected</span> &nbsp; <span style="background:#f3e3bd;padding:0 6px;">likely range</span></p>`;
   }
 
   function prefillPurchase(supplierId) {
@@ -97,7 +95,7 @@
       mapped.push({ productId: p.id, productName: p.name, category: p.category, barcode: p.barcode || "",
         qty: String(s.suggested_qty), rate: String(p.costPrice), amount: (s.suggested_qty * p.costPrice).toFixed(2) });
     });
-    if (!mapped.length) { toast("Reset the demo data first", "err"); return; }
+    if (!mapped.length) { toast("Reset the sample data first", "err"); return; }
     purchaseRows = mapped.concat([blankPurchaseRow()]);
     showScreen("purchase");
     const sel = $("purchaseSupplier");
@@ -107,24 +105,36 @@
   }
   window.selfsensePrefill = prefillPurchase;
 
+  // Plain-language labels for the rule-based checks shown to the shop user.
+  // (The statistical spike/drop flags are kept for analysis in reports/, not shown here.)
+  const CHECKS = {
+    duplicate_sale: "Sales entered twice",
+    credit_sale_no_name: "Credit sales without a customer name",
+    sale_at_zero_stock: "Sales recorded when stock was 0",
+    ledger_balance_mismatch: "Stock register entries that don't add up",
+    shrinkage: "Shelf count differs from records",
+  };
+
   function render() {
     const root = $("insightsRoot");
     if (!INS) { root.innerHTML = '<p class="help">Insights not available.</p>'; return; }
-    const m = INS.model_info, mon = INS.monitoring, q = INS.quality;
+    const q = INS.quality;
     const supName = (id) => { const s = (DB.suppliers || []).find((x) => String(x.id) === String(id)); return s ? s.name : "Supplier " + id; };
     const need = INS.reorder_suggestions.filter((s) => s.suggested_qty > 0);
     const bySup = {};
     need.forEach((s) => { (bySup[s.supplierId] = bySup[s.supplierId] || []).push(s); });
+    const week = Math.round(INS.category_forecast.reduce((a, c) => a + c.yhat.slice(0, 7).reduce((x, y) => x + y, 0), 0));
+    const issues = Object.keys(CHECKS).filter((k) => q.counts[k] > 0);
+    const issueTotal = issues.reduce((a, k) => a + q.counts[k], 0);
+    const fmtDay = (d) => new Date(d + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
     let h = `<h1>🔮 Insights</h1>
-    <p class="help">Data up to ${esc(INS.meta.as_of)} · model ${esc(m.version)} ·
-      <a href="#" onclick="selfsenseLoadDemoData();return false;">reset demo data</a></p>
+    <p class="help">Updated ${esc(fmtDay(INS.meta.as_of))} · <a href="#" onclick="selfsenseLoadDemoData();return false;">Reset sample data</a></p>
     <div class="cards">
-      <div class="card good"><div class="label">Forecast error (WAPE)</div><div class="value">${pct(m.holdout_wape_selected)}</div><div class="sub">baseline ${pct(m.holdout_wape_seasonal_naive)}</div></div>
-      <div class="card"><div class="label">Days inside 80% range</div><div class="value">${pct(m.holdout_coverage_80)}</div><div class="sub">last 28 days</div></div>
-      <div class="card ${mon.drift.alert ? "bad" : "good"}"><div class="label">Drift</div><div class="value" style="font-size:1.3rem;">${mon.drift.alert ? "⚠️ Check" : "✓ None"}</div><div class="sub">recent vs past sales</div></div>
+      <div class="card"><div class="label">Expected sales, next 7 days</div><div class="value">${week.toLocaleString("en-IN")}</div><div class="sub">bottles</div></div>
+      <div class="card ${need.length ? "bad" : "good"}"><div class="label">Items to reorder</div><div class="value">${need.length}</div><div class="sub">from ${Object.keys(bySup).length} ${Object.keys(bySup).length === 1 ? "supplier" : "suppliers"}</div></div>
+      <div class="card ${issueTotal ? "bad" : "good"}"><div class="label">Records to check</div><div class="value">${issueTotal}</div><div class="sub">see below</div></div>
     </div>
-    <div class="banner ok">${esc(INS.brief.text)}</div>
 
     <div class="section-title"><h2>📈 Next 14 days</h2></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
@@ -142,18 +152,11 @@
         `</tbody></table></div><button class="btn btn-gold btn-sm" style="margin-top:6px;" onclick="selfsensePrefill('${esc(sid)}')">Fill purchase order</button>`;
     });
 
-    const flagged = Object.entries(q.counts).filter(([, v]) => v > 0);
-    h += `<div class="section-title"><h2>🧪 Data checks</h2></div><div class="stat-strip">` +
-      flagged.map(([k, v]) => `<div class="stat-chip bad"><div class="l">${esc(k.replace(/_/g, " "))}</div><div class="v">${v}</div></div>`).join("") + `</div>`;
-    const alertList = Object.values(q.alerts).flatMap((arr) => arr.slice(-1)).slice(0, 6);
-    h += `<ul style="font-size:0.9rem;line-height:1.6;">${alertList.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>`;
-
-    if (mon.history.length) {
-      h += `<div class="section-title"><h2>📡 Accuracy by week</h2></div>
-      <div class="table-wrap"><table><thead><tr><th>Week ending</th><th>Model</th><th>Error (WAPE)</th></tr></thead><tbody>` +
-        mon.history.slice(-6).map((x) => `<tr><td>${esc(x.scored_through)}</td><td>${esc(x.model_version)}</td><td>${pct(x.live_wape)}</td></tr>`).join("") +
-        `</tbody></table></div>`;
-    }
+    h += `<div class="section-title"><h2>🧾 Records to check</h2></div>`;
+    if (!issues.length) h += `<p class="help">No problems found in the records.</p>`;
+    else h += `<div class="table-wrap"><table><thead><tr><th>Problem</th><th>Count</th><th>Latest example</th></tr></thead><tbody>` +
+      issues.map((k) => { const ex = (q.alerts[k] || []).slice(-1)[0] || ""; return `<tr><td>${esc(CHECKS[k])}</td><td><b>${q.counts[k]}</b></td><td style="font-size:0.85rem;color:var(--muted);">${esc(ex)}</td></tr>`; }).join("") +
+      `</tbody></table></div>`;
     root.innerHTML = h;
 
     const kind = $("insKind"), key = $("insKey");

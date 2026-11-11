@@ -1,7 +1,7 @@
 {
-  "name": "SelfSense — Retail POS + Forecasting Demo",
+  "name": "SelfSense",
   "short_name": "SelfSense",
-  "description": "Demo copy of a retail POS app with a forecasting & analytics layer. All data is synthetic.",
+  "description": "Billing, stock, purchases and demand forecasts for a retail shop",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
