@@ -36,54 +36,54 @@ The FastAPI service serves the same results for other systems; the app doesn't n
 ## Results
 
 <!-- RESULTS:START -->
-Updated automatically by the weekly retraining job. Data up to 2026-11-07.
+Updated automatically by the weekly retraining job. Data up to 2026-11-14.
 
 ### Forecast error on the last 28 days (held out)
 
 | Model | WAPE | vs baseline | MASE | 80% range coverage |
 |---|---|---|---|---|
-| Seasonal naive (baseline) | 65.7% | — | 1.13 | 79.4% |
-| Moving average | 54.9% | -16% | 0.92 | 73.8% |
-| Holt-Winters | 49.8% | -24% | 0.84 | 77.4% |
-| Gradient boosting | 51.4% | -22% | 0.85 | 75.6% |
+| Seasonal naive (baseline) | 68.8% | — | 1.16 | 77.2% |
+| Moving average | 52.6% | -24% | 0.89 | 75.6% |
+| Holt-Winters | 48.5% | -30% | 0.84 | 74.6% |
+| Gradient boosting | 47.6% | -31% | 0.82 | 76.4% |
 
-The live model uses the best model per category, chosen on the backtest (gradient boosting for 7 of 7 categories): 51.4% WAPE.
+The live model uses the best model per category, chosen on the backtest (gradient boosting for 6, holt-winters for 1 of 7 categories): 47.4% WAPE.
 
-On festival days, gradient boosting had 49.7% WAPE vs 62.8% for the baseline. All models still under-forecast festivals.
+On festival days, gradient boosting had 40.9% WAPE vs 53.0% for the baseline. All models still under-forecast festivals.
 
 ### Reorder simulation (91 days, simulated)
 
 | Policy | Out-of-stock product-days | Lost sales (units) | Fill rate | Avg stock held (units) |
 |---|---|---|---|---|
-| Current fixed rule | 133 | 658 | 91.4% | 356 |
-| Forecast-based, 90% service | 33 | 137 | 98.2% | 415 |
-| Forecast-based, 95% service | 21 | 91 | 98.8% | 446 |
-| Forecast-based, 98% service | 22 | 79 | 99.0% | 483 |
+| Current fixed rule | 134 | 937 | 88.1% | 355 |
+| Forecast-based, 90% service | 38 | 253 | 96.8% | 423 |
+| Forecast-based, 95% service | 23 | 171 | 97.8% | 455 |
+| Forecast-based, 98% service | 22 | 161 | 98.0% | 494 |
 
 ### Data checks (against problems planted in the synthetic data)
 
 | Check | Planted | Flagged | Precision | Recall |
 |---|---|---|---|---|
 | Duplicate sale | 7 | 7 | 100.0% | 100.0% |
-| Credit sale no name | 10 | 10 | 100.0% | 100.0% |
+| Credit sale no name | 11 | 11 | 100.0% | 100.0% |
 | Sale at zero stock | 14 | 14 | 100.0% | 100.0% |
 | Ledger balance mismatch | 11 | 11 | 100.0% | 100.0% |
 | Shrinkage | 3 | 3 | 100.0% | 100.0% |
-| Demand spike | 9 | 14 | 28.6% | 44.4% |
+| Demand spike | 9 | 15 | 26.7% | 44.4% |
 | Demand drop | 6 | 6 | 16.7% | 16.7% |
 
 ### Model history
 
 | Version | Holdout WAPE | Previous model, same days | Result |
 |---|---|---|---|
-| v20261003-a55cdf0 | 48.6% | — | replaced later |
 | v20261010-cadbcdf | 47.9% | 45.9% | rejected |
 | v20261017-d3e4b23 | 49.6% | 49.6% | replaced later |
 | v20261024-cf5c843 | 49.1% | 49.4% | replaced later |
 | v20261031-eed90a8 | 49.3% | 49.1% | replaced later |
-| v20261107-f26f9a6 | 51.4% | 51.6% | live |
+| v20261107-f26f9a6 | 51.4% | 51.6% | replaced later |
+| v20261114-0964121 | 47.4% | 47.6% | live |
 
-Last week's live forecast error was 50.5% (holdout at training: 49.3%). Drift check: no drift detected.
+Last week's live forecast error was 46.0% (holdout at training: 51.4%). Drift check: no drift detected.
 <!-- RESULTS:END -->
 
 ## Design choices

@@ -1,6 +1,6 @@
 {
- "text": "Week of 2026-11-08 (synthetic demo data). Expected sales next 7 days: 90ml ~213 units, Beer ~152 units, 180ml ~128 units. Reorder now: 11 products. Biggest: Northfield Lager (166), Silver Crest Whisky 90ml (121), Monsoon Strong Beer (104). Data checks to review: duplicate sale: 7, credit sale no name: 10, sale at zero stock: 14, ledger balance mismatch: 11, shrinkage: 3, demand spike: 14, demand drop: 6.",
- "template": "Week of 2026-11-08 (synthetic demo data). Expected sales next 7 days: 90ml ~213 units, Beer ~152 units, 180ml ~128 units. Reorder now: 11 products. Biggest: Northfield Lager (166), Silver Crest Whisky 90ml (121), Monsoon Strong Beer (104). Data checks to review: duplicate sale: 7, credit sale no name: 10, sale at zero stock: 14, ledger balance mismatch: 11, shrinkage: 3, demand spike: 14, demand drop: 6.",
+ "text": "Next 7 days: 90ml ~170, Beer ~139, 180ml ~104 units. Reorder 9 products, mainly Northfield Lager (133), Red Kite Rum 90ml (77), Silver Crest Whisky 180ml (75). 67 data issues to review.",
+ "template": "Next 7 days: 90ml ~170, Beer ~139, 180ml ~104 units. Reorder 9 products, mainly Northfield Lager (133), Red Kite Rum 90ml (77), Silver Crest Whisky 180ml (75). 67 data issues to review.",
  "source": "template",
  "llm": {
   "used": false,

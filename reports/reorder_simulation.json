@@ -1,8 +1,8 @@
 {
  "data": "SYNTHETIC (simulated on true latent demand)",
  "window": [
-  "2026-08-09",
-  "2026-11-07"
+  "2026-08-16",
+  "2026-11-14"
  ],
  "days": 91,
  "products": 16,
@@ -11,42 +11,42 @@
  "results": [
   {
    "policy": "fixed",
-   "stockout_product_days": 133,
-   "stockout_rate": 0.0913,
-   "lost_units": 658.0,
-   "fill_rate": 0.914,
-   "avg_units_on_hand": 355.5,
-   "avg_stock_value": 46161.0,
-   "orders_placed": 149
+   "stockout_product_days": 134,
+   "stockout_rate": 0.092,
+   "lost_units": 937.0,
+   "fill_rate": 0.8806,
+   "avg_units_on_hand": 354.8,
+   "avg_stock_value": 46164.0,
+   "orders_placed": 148
   },
   {
    "policy": "forecast_sl90",
-   "stockout_product_days": 33,
-   "stockout_rate": 0.0227,
-   "lost_units": 137.0,
-   "fill_rate": 0.9821,
-   "avg_units_on_hand": 414.6,
-   "avg_stock_value": 54546.0,
-   "orders_placed": 209
+   "stockout_product_days": 38,
+   "stockout_rate": 0.0261,
+   "lost_units": 253.0,
+   "fill_rate": 0.9678,
+   "avg_units_on_hand": 422.8,
+   "avg_stock_value": 55586.0,
+   "orders_placed": 207
   },
   {
    "policy": "forecast_sl95",
-   "stockout_product_days": 21,
-   "stockout_rate": 0.0144,
-   "lost_units": 91.0,
-   "fill_rate": 0.9881,
-   "avg_units_on_hand": 445.6,
-   "avg_stock_value": 59218.0,
-   "orders_placed": 211
+   "stockout_product_days": 23,
+   "stockout_rate": 0.0158,
+   "lost_units": 171.0,
+   "fill_rate": 0.9782,
+   "avg_units_on_hand": 454.7,
+   "avg_stock_value": 60283.0,
+   "orders_placed": 212
   },
   {
    "policy": "forecast_sl98",
    "stockout_product_days": 22,
    "stockout_rate": 0.0151,
-   "lost_units": 79.0,
-   "fill_rate": 0.9897,
-   "avg_units_on_hand": 482.7,
-   "avg_stock_value": 64688.0,
+   "lost_units": 161.0,
+   "fill_rate": 0.9795,
+   "avg_units_on_hand": 493.8,
+   "avg_stock_value": 65808.0,
    "orders_placed": 212
   }
  ]
