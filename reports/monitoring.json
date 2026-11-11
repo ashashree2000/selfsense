@@ -69,7 +69,7 @@
   "mean_shift": 0.139,
   "ks_stat": 0.225,
   "ks_pvalue": 0.15459,
-  "live_to_holdout_error_ratio": 0.895,
+  "live_to_holdout_error_ratio": null,
   "alert": false,
   "rule": "alert if (KS p<0.01 and |mean shift|>15%) or live WAPE > 1.5x holdout WAPE",
   "as_of": "2026-11-14"

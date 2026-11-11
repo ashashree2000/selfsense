@@ -1,5 +1,5 @@
 {
- "production": "v20261114-0964121",
+ "production": "v20261114-146a28d",
  "current_as_of": "2026-11-14",
  "promotion_threshold": 0.02,
  "versions": [
@@ -161,8 +161,31 @@
    "holdout_wape_seasonal_naive": 0.6885,
    "holdout_coverage_80_selected": 0.7641,
    "champion_wape_on_same_holdout": 0.4761,
-   "status": "production",
+   "status": "archived",
    "decision": "candidate 0.4740 <= champion 0.4761 x (1+0.02)"
+  },
+  {
+   "version": "v20261114-146a28d",
+   "as_of": "2026-11-14",
+   "created_at": "2026-11-11T23:31:05+00:00",
+   "code_hash": "e987636b9a8d",
+   "data_hash": "a217e7b63d85",
+   "selection": {
+    "150ml": "gbm",
+    "180ml": "gbm",
+    "375ml": "gbm",
+    "750ml": "gbm",
+    "90ml": "holt_winters",
+    "Beer": "gbm",
+    "Wine": "gbm"
+   },
+   "holdout_wape_selected": 0.474,
+   "backtest_wape_selected": 0.5022,
+   "holdout_wape_seasonal_naive": 0.6885,
+   "holdout_coverage_80_selected": 0.7641,
+   "champion_wape_on_same_holdout": 0.474,
+   "status": "production",
+   "decision": "candidate 0.4740 <= champion 0.4740 x (1+0.02)"
   }
  ]
 }

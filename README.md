@@ -76,12 +76,12 @@ On festival days, gradient boosting had 40.9% WAPE vs 53.0% for the baseline. Al
 
 | Version | Holdout WAPE | Previous model, same days | Result |
 |---|---|---|---|
-| v20261010-cadbcdf | 47.9% | 45.9% | rejected |
 | v20261017-d3e4b23 | 49.6% | 49.6% | replaced later |
 | v20261024-cf5c843 | 49.1% | 49.4% | replaced later |
 | v20261031-eed90a8 | 49.3% | 49.1% | replaced later |
 | v20261107-f26f9a6 | 51.4% | 51.6% | replaced later |
-| v20261114-0964121 | 47.4% | 47.6% | live |
+| v20261114-0964121 | 47.4% | 47.6% | replaced later |
+| v20261114-146a28d | 47.4% | 47.4% | live |
 
 Last week's live forecast error was 46.0% (holdout at training: 51.4%). Drift check: no drift detected.
 <!-- RESULTS:END -->
