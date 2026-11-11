@@ -1,0 +1,57 @@
+{
+ "data": "SYNTHETIC",
+ "history": [
+  {
+   "forecast_made_at": "2026-10-03",
+   "model_version": "v20261003-a55cdf0",
+   "scored_through": "2026-10-10",
+   "days": 7,
+   "n": 105,
+   "live_wape": 0.4814,
+   "backtest_wape_of_model": 0.4994,
+   "holdout_wape_of_model": 0.486
+  },
+  {
+   "forecast_made_at": "2026-10-10",
+   "model_version": "v20261003-a55cdf0",
+   "scored_through": "2026-10-17",
+   "days": 7,
+   "n": 100,
+   "live_wape": 0.5337,
+   "backtest_wape_of_model": 0.4994,
+   "holdout_wape_of_model": 0.486
+  },
+  {
+   "forecast_made_at": "2026-10-17",
+   "model_version": "v20261017-d3e4b23",
+   "scored_through": "2026-10-24",
+   "days": 7,
+   "n": 89,
+   "live_wape": 0.4277,
+   "backtest_wape_of_model": 0.4981,
+   "holdout_wape_of_model": 0.4961
+  },
+  {
+   "forecast_made_at": "2026-10-24",
+   "model_version": "v20261024-cf5c843",
+   "scored_through": "2026-10-31",
+   "days": 7,
+   "n": 104,
+   "live_wape": 0.5299,
+   "backtest_wape_of_model": 0.4978,
+   "holdout_wape_of_model": 0.4915
+  }
+ ],
+ "latest_drift": {
+  "recent_window_days": 28,
+  "recent_mean_daily_units": 73.2,
+  "training_mean_daily_units": 71.4,
+  "mean_shift": 0.0246,
+  "ks_stat": 0.145,
+  "ks_pvalue": 0.64907,
+  "live_to_holdout_error_ratio": 1.078,
+  "alert": false,
+  "rule": "alert if (KS p<0.01 and |mean shift|>15%) or live WAPE > 1.5x holdout WAPE",
+  "as_of": "2026-10-31"
+ }
+}

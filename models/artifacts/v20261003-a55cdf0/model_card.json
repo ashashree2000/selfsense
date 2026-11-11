@@ -1,0 +1,49 @@
+{
+ "version": "v20261003-a55cdf0",
+ "as_of": "2026-10-03",
+ "created_at": "2026-11-11T22:09:36+00:00",
+ "code_hash": "75fcc76214f1",
+ "data_hash": "eec4daf22584",
+ "selection": {
+  "150ml": "gbm",
+  "180ml": "gbm",
+  "375ml": "gbm",
+  "750ml": "gbm",
+  "90ml": "holt_winters",
+  "Beer": "gbm",
+  "Wine": "moving_average"
+ },
+ "holdout_wape_selected": 0.486,
+ "backtest_wape_selected": 0.4994,
+ "holdout_wape_seasonal_naive": 0.6784,
+ "holdout_coverage_80_selected": 0.7919,
+ "champion_wape_on_same_holdout": null,
+ "status": "production",
+ "decision": "bootstrap: no production model yet",
+ "horizon_days": 14,
+ "hgb_params": {
+  "loss": "poisson",
+  "learning_rate": 0.05,
+  "max_iter": 300,
+  "max_leaf_nodes": 31,
+  "min_samples_leaf": 20,
+  "l2_regularization": 1.0,
+  "random_state": 0
+ },
+ "features": [
+  "pid",
+  "cat",
+  "h",
+  "dow",
+  "dom",
+  "month",
+  "is_weekend",
+  "is_payday",
+  "is_festival",
+  "is_holiday",
+  "m7",
+  "m28",
+  "sdow4"
+ ],
+ "data": "SYNTHETIC"
+}

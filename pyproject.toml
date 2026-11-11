@@ -1,0 +1,17 @@
+[project]
+name = "selfsense"
+version = "0.1.0"
+description = "Forecasting & analytics layer on a copy of a single-file retail POS app (synthetic data demo)"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+extend-exclude = ["app"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["B023", "B905"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

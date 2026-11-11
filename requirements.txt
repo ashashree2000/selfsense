@@ -1,0 +1,10 @@
+# pipeline / training (kept deliberately light: no torch / prophet / tensorflow)
+pandas==3.0.5
+numpy==2.5.3
+scikit-learn==1.9.1
+statsmodels==0.15.0
+scipy==1.18.1
+duckdb==2.0.0
+pyarrow==26.0.1
+openpyxl==3.1.5
+joblib==1.6.0

@@ -1,0 +1,6 @@
+data/
+.git/
+**/__pycache__
+models/artifacts/
+app/data/
+tests/

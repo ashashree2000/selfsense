@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.ruff_cache/
+# regenerated deterministically by the pipeline (seeded)
+data/raw/
+data/processed/
+data/truth/
+# large binaries are uploaded as CI artifacts instead of committed
+models/artifacts/*/gbm.joblib
+.vercel
+node_modules/
+test-results/
+
+# local scratch (safe to delete)
+_to_delete/

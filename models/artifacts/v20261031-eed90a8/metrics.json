@@ -1,0 +1,91 @@
+{
+ "holdout_overall": [
+  {
+   "model": "gbm",
+   "wape": 0.4923,
+   "bias": -0.1607,
+   "mase": 0.7957,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.8116
+  },
+  {
+   "model": "holt_winters",
+   "wape": 0.4973,
+   "bias": -0.1055,
+   "mase": 0.8092,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.8065
+  },
+  {
+   "model": "moving_average",
+   "wape": 0.5362,
+   "bias": -0.1218,
+   "mase": 0.8728,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.7663
+  },
+  {
+   "model": "seasonal_naive",
+   "wape": 0.6739,
+   "bias": -0.0486,
+   "mase": 1.0787,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.8141
+  },
+  {
+   "model": "selected_per_category",
+   "wape": 0.4927,
+   "bias": -0.1483,
+   "mase": 0.7967,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.809
+  }
+ ],
+ "backtest_overall": [
+  {
+   "model": "gbm",
+   "wape": 0.5023,
+   "bias": -0.0461,
+   "mase": 0.7649,
+   "n": 4011,
+   "actual_units": 19314.0
+  },
+  {
+   "model": "holt_winters",
+   "wape": 0.505,
+   "bias": -0.012,
+   "mase": 0.7716,
+   "n": 4011,
+   "actual_units": 19314.0
+  },
+  {
+   "model": "moving_average",
+   "wape": 0.525,
+   "bias": 0.0119,
+   "mase": 0.7962,
+   "n": 4011,
+   "actual_units": 19314.0
+  },
+  {
+   "model": "seasonal_naive",
+   "wape": 0.6685,
+   "bias": -0.0008,
+   "mase": 1.0198,
+   "n": 4011,
+   "actual_units": 19314.0
+  },
+  {
+   "model": "selected_per_category",
+   "wape": 0.5003,
+   "bias": -0.0336,
+   "mase": 0.7633,
+   "n": 4011,
+   "actual_units": 19314.0
+  }
+ ]
+}

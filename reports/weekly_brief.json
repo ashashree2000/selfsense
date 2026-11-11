@@ -1,0 +1,9 @@
+{
+ "text": "Week of 2026-11-01 (synthetic demo data). Expected sales next 7 days: 90ml ~167 units, Beer ~145 units, 180ml ~123 units. Reorder now: 11 products. Biggest: Silver Crest Whisky 90ml (92), Red Kite Rum 180ml (51), Copper Leaf Brandy 90ml (41). Data checks to review: duplicate sale: 7, credit sale no name: 10, sale at zero stock: 14, ledger balance mismatch: 10, shrinkage: 3, demand spike: 15, demand drop: 6.",
+ "template": "Week of 2026-11-01 (synthetic demo data). Expected sales next 7 days: 90ml ~167 units, Beer ~145 units, 180ml ~123 units. Reorder now: 11 products. Biggest: Silver Crest Whisky 90ml (92), Red Kite Rum 180ml (51), Copper Leaf Brandy 90ml (41). Data checks to review: duplicate sale: 7, credit sale no name: 10, sale at zero stock: 14, ledger balance mismatch: 10, shrinkage: 3, demand spike: 15, demand drop: 6.",
+ "source": "template",
+ "llm": {
+  "used": false,
+  "reason": "GEMINI_API_KEY not set"
+ }
+}

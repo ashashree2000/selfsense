@@ -1,0 +1,15 @@
+{
+  "name": "SelfSense — Retail POS + Forecasting Demo",
+  "short_name": "SelfSense",
+  "description": "Demo copy of a retail POS app with a forecasting & analytics layer. All data is synthetic.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#5a1229",
+  "theme_color": "#5a1229",
+  "orientation": "any",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

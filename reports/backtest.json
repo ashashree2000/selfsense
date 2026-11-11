@@ -1,0 +1,786 @@
+{
+ "as_of": "2026-10-31",
+ "data": "SYNTHETIC",
+ "horizon_days": 14,
+ "backtest_origins": [
+  "2025-12-27",
+  "2026-01-10",
+  "2026-01-24",
+  "2026-02-07",
+  "2026-02-21",
+  "2026-03-07",
+  "2026-03-21",
+  "2026-04-04",
+  "2026-04-18",
+  "2026-05-02",
+  "2026-05-16",
+  "2026-05-30",
+  "2026-06-13",
+  "2026-06-27",
+  "2026-07-11",
+  "2026-07-25",
+  "2026-08-08",
+  "2026-08-22",
+  "2026-09-05",
+  "2026-09-19"
+ ],
+ "holdout_origins": [
+  "2026-10-03",
+  "2026-10-17"
+ ],
+ "scoring_excludes": "stock-out days (censored demand) and dry days",
+ "interval": "80% split-conformal (backtest residual quantiles 10%/90% per model x product x horizon bucket)",
+ "selection_per_category": {
+  "150ml": "gbm",
+  "180ml": "gbm",
+  "375ml": "gbm",
+  "750ml": "gbm",
+  "90ml": "holt_winters",
+  "Beer": "gbm",
+  "Wine": "gbm"
+ },
+ "backtest_overall": [
+  {
+   "model": "gbm",
+   "wape": 0.5023,
+   "bias": -0.0461,
+   "mase": 0.7649,
+   "n": 4011,
+   "actual_units": 19314.0
+  },
+  {
+   "model": "holt_winters",
+   "wape": 0.505,
+   "bias": -0.012,
+   "mase": 0.7716,
+   "n": 4011,
+   "actual_units": 19314.0
+  },
+  {
+   "model": "moving_average",
+   "wape": 0.525,
+   "bias": 0.0119,
+   "mase": 0.7962,
+   "n": 4011,
+   "actual_units": 19314.0
+  },
+  {
+   "model": "seasonal_naive",
+   "wape": 0.6685,
+   "bias": -0.0008,
+   "mase": 1.0198,
+   "n": 4011,
+   "actual_units": 19314.0
+  },
+  {
+   "model": "selected_per_category",
+   "wape": 0.5003,
+   "bias": -0.0336,
+   "mase": 0.7633,
+   "n": 4011,
+   "actual_units": 19314.0
+  }
+ ],
+ "backtest_by_category": [
+  {
+   "model": "gbm",
+   "category": "150ml",
+   "wape": 0.5281,
+   "bias": -0.0325,
+   "mase": 0.7384,
+   "n": 261,
+   "actual_units": 1149.0
+  },
+  {
+   "model": "gbm",
+   "category": "180ml",
+   "wape": 0.5199,
+   "bias": -0.0338,
+   "mase": 0.7591,
+   "n": 776,
+   "actual_units": 4019.0
+  },
+  {
+   "model": "gbm",
+   "category": "375ml",
+   "wape": 0.6751,
+   "bias": -0.0392,
+   "mase": 0.7306,
+   "n": 757,
+   "actual_units": 1525.0
+  },
+  {
+   "model": "gbm",
+   "category": "750ml",
+   "wape": 0.6897,
+   "bias": -0.0211,
+   "mase": 0.7145,
+   "n": 510,
+   "actual_units": 834.0
+  },
+  {
+   "model": "gbm",
+   "category": "90ml",
+   "wape": 0.4445,
+   "bias": -0.0203,
+   "mase": 0.7443,
+   "n": 771,
+   "actual_units": 6366.0
+  },
+  {
+   "model": "gbm",
+   "category": "Beer",
+   "wape": 0.4314,
+   "bias": -0.0987,
+   "mase": 0.8507,
+   "n": 437,
+   "actual_units": 5010.0
+  },
+  {
+   "model": "gbm",
+   "category": "Wine",
+   "wape": 0.9974,
+   "bias": -0.0368,
+   "mase": 0.8481,
+   "n": 499,
+   "actual_units": 411.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "150ml",
+   "wape": 0.5382,
+   "bias": 0.0291,
+   "mase": 0.7521,
+   "n": 261,
+   "actual_units": 1149.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "180ml",
+   "wape": 0.5241,
+   "bias": 0.0038,
+   "mase": 0.7677,
+   "n": 776,
+   "actual_units": 4019.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "375ml",
+   "wape": 0.6772,
+   "bias": 0.0302,
+   "mase": 0.7348,
+   "n": 757,
+   "actual_units": 1525.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "750ml",
+   "wape": 0.7138,
+   "bias": -0.0176,
+   "mase": 0.7397,
+   "n": 510,
+   "actual_units": 834.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "90ml",
+   "wape": 0.4384,
+   "bias": 0.0174,
+   "mase": 0.7361,
+   "n": 771,
+   "actual_units": 6366.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "Beer",
+   "wape": 0.4384,
+   "bias": -0.0834,
+   "mase": 0.8618,
+   "n": 437,
+   "actual_units": 5010.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "Wine",
+   "wape": 1.0055,
+   "bias": -0.0127,
+   "mase": 0.8525,
+   "n": 499,
+   "actual_units": 411.0
+  },
+  {
+   "model": "moving_average",
+   "category": "150ml",
+   "wape": 0.5739,
+   "bias": 0.0272,
+   "mase": 0.801,
+   "n": 261,
+   "actual_units": 1149.0
+  },
+  {
+   "model": "moving_average",
+   "category": "180ml",
+   "wape": 0.5446,
+   "bias": 0.0186,
+   "mase": 0.7964,
+   "n": 776,
+   "actual_units": 4019.0
+  },
+  {
+   "model": "moving_average",
+   "category": "375ml",
+   "wape": 0.6949,
+   "bias": 0.0274,
+   "mase": 0.7582,
+   "n": 757,
+   "actual_units": 1525.0
+  },
+  {
+   "model": "moving_average",
+   "category": "750ml",
+   "wape": 0.7229,
+   "bias": 0.0035,
+   "mase": 0.7458,
+   "n": 510,
+   "actual_units": 834.0
+  },
+  {
+   "model": "moving_average",
+   "category": "90ml",
+   "wape": 0.4561,
+   "bias": 0.0224,
+   "mase": 0.7662,
+   "n": 771,
+   "actual_units": 6366.0
+  },
+  {
+   "model": "moving_average",
+   "category": "Beer",
+   "wape": 0.4613,
+   "bias": -0.0149,
+   "mase": 0.9033,
+   "n": 437,
+   "actual_units": 5010.0
+  },
+  {
+   "model": "moving_average",
+   "category": "Wine",
+   "wape": 1.0074,
+   "bias": 0.028,
+   "mase": 0.8551,
+   "n": 499,
+   "actual_units": 411.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "150ml",
+   "wape": 0.7224,
+   "bias": 0.0487,
+   "mase": 1.0071,
+   "n": 261,
+   "actual_units": 1149.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "180ml",
+   "wape": 0.7002,
+   "bias": 0.0075,
+   "mase": 1.0255,
+   "n": 776,
+   "actual_units": 4019.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "375ml",
+   "wape": 0.903,
+   "bias": 0.0531,
+   "mase": 0.9797,
+   "n": 757,
+   "actual_units": 1525.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "750ml",
+   "wape": 0.9592,
+   "bias": -0.024,
+   "mase": 0.9845,
+   "n": 510,
+   "actual_units": 834.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "90ml",
+   "wape": 0.596,
+   "bias": 0.0079,
+   "mase": 1.0042,
+   "n": 771,
+   "actual_units": 6366.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "Beer",
+   "wape": 0.5547,
+   "bias": -0.0409,
+   "mase": 1.0981,
+   "n": 437,
+   "actual_units": 5010.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "Wine",
+   "wape": 1.2579,
+   "bias": -0.017,
+   "mase": 1.0696,
+   "n": 499,
+   "actual_units": 411.0
+  }
+ ],
+ "holdout_overall": [
+  {
+   "model": "gbm",
+   "wape": 0.4923,
+   "bias": -0.1607,
+   "mase": 0.7957,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.8116
+  },
+  {
+   "model": "holt_winters",
+   "wape": 0.4973,
+   "bias": -0.1055,
+   "mase": 0.8092,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.8065
+  },
+  {
+   "model": "moving_average",
+   "wape": 0.5362,
+   "bias": -0.1218,
+   "mase": 0.8728,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.7663
+  },
+  {
+   "model": "seasonal_naive",
+   "wape": 0.6739,
+   "bias": -0.0486,
+   "mase": 1.0787,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.8141
+  },
+  {
+   "model": "selected_per_category",
+   "wape": 0.4927,
+   "bias": -0.1483,
+   "mase": 0.7967,
+   "n": 398,
+   "actual_units": 2159.0,
+   "coverage_80": 0.809
+  }
+ ],
+ "holdout_by_category": [
+  {
+   "model": "gbm",
+   "category": "150ml",
+   "wape": 0.4869,
+   "bias": -0.2018,
+   "mase": 0.8586,
+   "n": 26,
+   "actual_units": 144.0
+  },
+  {
+   "model": "gbm",
+   "category": "180ml",
+   "wape": 0.4492,
+   "bias": -0.0672,
+   "mase": 0.6969,
+   "n": 78,
+   "actual_units": 409.0
+  },
+  {
+   "model": "gbm",
+   "category": "375ml",
+   "wape": 0.5483,
+   "bias": -0.1945,
+   "mase": 0.7196,
+   "n": 75,
+   "actual_units": 183.0
+  },
+  {
+   "model": "gbm",
+   "category": "750ml",
+   "wape": 0.5892,
+   "bias": -0.0936,
+   "mase": 0.6379,
+   "n": 48,
+   "actual_units": 84.0
+  },
+  {
+   "model": "gbm",
+   "category": "90ml",
+   "wape": 0.506,
+   "bias": -0.1006,
+   "mase": 0.8562,
+   "n": 79,
+   "actual_units": 662.0
+  },
+  {
+   "model": "gbm",
+   "category": "Beer",
+   "wape": 0.4471,
+   "bias": -0.2778,
+   "mase": 1.0476,
+   "n": 43,
+   "actual_units": 631.0
+  },
+  {
+   "model": "gbm",
+   "category": "Wine",
+   "wape": 0.9132,
+   "bias": -0.1103,
+   "mase": 0.8717,
+   "n": 49,
+   "actual_units": 46.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "150ml",
+   "wape": 0.4632,
+   "bias": -0.2517,
+   "mase": 0.8166,
+   "n": 26,
+   "actual_units": 144.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "180ml",
+   "wape": 0.4643,
+   "bias": -0.0957,
+   "mase": 0.7065,
+   "n": 78,
+   "actual_units": 409.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "375ml",
+   "wape": 0.587,
+   "bias": -0.2147,
+   "mase": 0.7726,
+   "n": 75,
+   "actual_units": 183.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "750ml",
+   "wape": 0.6191,
+   "bias": -0.0577,
+   "mase": 0.6742,
+   "n": 48,
+   "actual_units": 84.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "90ml",
+   "wape": 0.5075,
+   "bias": -0.0603,
+   "mase": 0.8613,
+   "n": 79,
+   "actual_units": 662.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "Beer",
+   "wape": 0.4435,
+   "bias": -0.0995,
+   "mase": 1.0403,
+   "n": 43,
+   "actual_units": 631.0
+  },
+  {
+   "model": "holt_winters",
+   "category": "Wine",
+   "wape": 0.9101,
+   "bias": -0.119,
+   "mase": 0.87,
+   "n": 49,
+   "actual_units": 46.0
+  },
+  {
+   "model": "moving_average",
+   "category": "150ml",
+   "wape": 0.5023,
+   "bias": -0.2847,
+   "mase": 0.8858,
+   "n": 26,
+   "actual_units": 144.0
+  },
+  {
+   "model": "moving_average",
+   "category": "180ml",
+   "wape": 0.4975,
+   "bias": -0.0234,
+   "mase": 0.7546,
+   "n": 78,
+   "actual_units": 409.0
+  },
+  {
+   "model": "moving_average",
+   "category": "375ml",
+   "wape": 0.6181,
+   "bias": -0.18,
+   "mase": 0.8187,
+   "n": 75,
+   "actual_units": 183.0
+  },
+  {
+   "model": "moving_average",
+   "category": "750ml",
+   "wape": 0.6723,
+   "bias": -0.0116,
+   "mase": 0.74,
+   "n": 48,
+   "actual_units": 84.0
+  },
+  {
+   "model": "moving_average",
+   "category": "90ml",
+   "wape": 0.5501,
+   "bias": -0.0559,
+   "mase": 0.9232,
+   "n": 79,
+   "actual_units": 662.0
+  },
+  {
+   "model": "moving_average",
+   "category": "Beer",
+   "wape": 0.4776,
+   "bias": -0.2178,
+   "mase": 1.1275,
+   "n": 43,
+   "actual_units": 631.0
+  },
+  {
+   "model": "moving_average",
+   "category": "Wine",
+   "wape": 1.0171,
+   "bias": -0.0902,
+   "mase": 0.9624,
+   "n": 49,
+   "actual_units": 46.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "150ml",
+   "wape": 0.7292,
+   "bias": -0.1319,
+   "mase": 1.2854,
+   "n": 26,
+   "actual_units": 144.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "180ml",
+   "wape": 0.709,
+   "bias": 0.0978,
+   "mase": 1.0465,
+   "n": 78,
+   "actual_units": 409.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "375ml",
+   "wape": 0.7978,
+   "bias": -0.153,
+   "mase": 1.0387,
+   "n": 75,
+   "actual_units": 183.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "750ml",
+   "wape": 0.8214,
+   "bias": -0.0595,
+   "mase": 0.8824,
+   "n": 48,
+   "actual_units": 84.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "90ml",
+   "wape": 0.6526,
+   "bias": -0.0514,
+   "mase": 1.1013,
+   "n": 79,
+   "actual_units": 662.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "Beer",
+   "wape": 0.5753,
+   "bias": -0.084,
+   "mase": 1.3079,
+   "n": 43,
+   "actual_units": 631.0
+  },
+  {
+   "model": "seasonal_naive",
+   "category": "Wine",
+   "wape": 1.087,
+   "bias": -0.1304,
+   "mase": 1.0363,
+   "n": 49,
+   "actual_units": 46.0
+  },
+  {
+   "model": "selected_per_category",
+   "category": "150ml",
+   "wape": 0.4869,
+   "bias": -0.2018,
+   "mase": 0.8586,
+   "n": 26,
+   "actual_units": 144.0
+  },
+  {
+   "model": "selected_per_category",
+   "category": "180ml",
+   "wape": 0.4492,
+   "bias": -0.0672,
+   "mase": 0.6969,
+   "n": 78,
+   "actual_units": 409.0
+  },
+  {
+   "model": "selected_per_category",
+   "category": "375ml",
+   "wape": 0.5483,
+   "bias": -0.1945,
+   "mase": 0.7196,
+   "n": 75,
+   "actual_units": 183.0
+  },
+  {
+   "model": "selected_per_category",
+   "category": "750ml",
+   "wape": 0.5892,
+   "bias": -0.0936,
+   "mase": 0.6379,
+   "n": 48,
+   "actual_units": 84.0
+  },
+  {
+   "model": "selected_per_category",
+   "category": "90ml",
+   "wape": 0.5075,
+   "bias": -0.0603,
+   "mase": 0.8613,
+   "n": 79,
+   "actual_units": 662.0
+  },
+  {
+   "model": "selected_per_category",
+   "category": "Beer",
+   "wape": 0.4471,
+   "bias": -0.2778,
+   "mase": 1.0476,
+   "n": 43,
+   "actual_units": 631.0
+  },
+  {
+   "model": "selected_per_category",
+   "category": "Wine",
+   "wape": 0.9132,
+   "bias": -0.1103,
+   "mase": 0.8717,
+   "n": 49,
+   "actual_units": 46.0
+  }
+ ],
+ "festival_days_backtest": [
+  {
+   "model": "gbm",
+   "wape": 0.4987,
+   "bias": -0.2505,
+   "mase": 1.2875,
+   "n": 96,
+   "actual_units": 799.0
+  },
+  {
+   "model": "holt_winters",
+   "wape": 0.5761,
+   "bias": -0.4762,
+   "mase": 1.4252,
+   "n": 96,
+   "actual_units": 799.0
+  },
+  {
+   "model": "moving_average",
+   "wape": 0.5188,
+   "bias": -0.3851,
+   "mase": 1.2974,
+   "n": 96,
+   "actual_units": 799.0
+  },
+  {
+   "model": "seasonal_naive",
+   "wape": 0.5982,
+   "bias": -0.4556,
+   "mase": 1.5105,
+   "n": 96,
+   "actual_units": 799.0
+  },
+  {
+   "model": "selected_per_category",
+   "wape": 0.536,
+   "bias": -0.3471,
+   "mase": 1.3511,
+   "n": 96,
+   "actual_units": 799.0
+  }
+ ],
+ "festival_days_holdout": [
+  {
+   "model": "gbm",
+   "wape": 0.4456,
+   "bias": -0.3314,
+   "mase": 1.3425,
+   "n": 36,
+   "actual_units": 422.0
+  },
+  {
+   "model": "holt_winters",
+   "wape": 0.5196,
+   "bias": -0.5018,
+   "mase": 1.6205,
+   "n": 36,
+   "actual_units": 422.0
+  },
+  {
+   "model": "moving_average",
+   "wape": 0.5556,
+   "bias": -0.5535,
+   "mase": 1.7003,
+   "n": 36,
+   "actual_units": 422.0
+  },
+  {
+   "model": "seasonal_naive",
+   "wape": 0.5616,
+   "bias": -0.5237,
+   "mase": 1.7403,
+   "n": 36,
+   "actual_units": 422.0
+  },
+  {
+   "model": "selected_per_category",
+   "wape": 0.444,
+   "bias": -0.3763,
+   "mase": 1.3414,
+   "n": 36,
+   "actual_units": 422.0
+  }
+ ]
+}

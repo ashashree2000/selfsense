@@ -1,0 +1,122 @@
+{
+ "production": "v20261031-eed90a8",
+ "current_as_of": "2026-10-31",
+ "promotion_threshold": 0.02,
+ "versions": [
+  {
+   "version": "v20261003-a55cdf0",
+   "as_of": "2026-10-03",
+   "created_at": "2026-11-11T22:09:36+00:00",
+   "code_hash": "75fcc76214f1",
+   "data_hash": "eec4daf22584",
+   "selection": {
+    "150ml": "gbm",
+    "180ml": "gbm",
+    "375ml": "gbm",
+    "750ml": "gbm",
+    "90ml": "holt_winters",
+    "Beer": "gbm",
+    "Wine": "moving_average"
+   },
+   "holdout_wape_selected": 0.486,
+   "backtest_wape_selected": 0.4994,
+   "holdout_wape_seasonal_naive": 0.6784,
+   "holdout_coverage_80_selected": 0.7919,
+   "champion_wape_on_same_holdout": null,
+   "status": "archived",
+   "decision": "bootstrap: no production model yet"
+  },
+  {
+   "version": "v20261010-cadbcdf",
+   "as_of": "2026-10-10",
+   "created_at": "2026-11-11T22:11:30+00:00",
+   "code_hash": "75fcc76214f1",
+   "data_hash": "64dafec198c3",
+   "selection": {
+    "150ml": "gbm",
+    "180ml": "gbm",
+    "375ml": "gbm",
+    "750ml": "gbm",
+    "90ml": "gbm",
+    "Beer": "holt_winters",
+    "Wine": "gbm"
+   },
+   "holdout_wape_selected": 0.4793,
+   "backtest_wape_selected": 0.4997,
+   "holdout_wape_seasonal_naive": 0.6442,
+   "holdout_coverage_80_selected": 0.8312,
+   "champion_wape_on_same_holdout": 0.4593,
+   "status": "rejected",
+   "decision": "candidate 0.4793 worse than champion 0.4593 beyond threshold"
+  },
+  {
+   "version": "v20261017-d3e4b23",
+   "as_of": "2026-10-17",
+   "created_at": "2026-11-11T22:13:23+00:00",
+   "code_hash": "75fcc76214f1",
+   "data_hash": "e6f10b0f4f37",
+   "selection": {
+    "150ml": "gbm",
+    "180ml": "gbm",
+    "375ml": "gbm",
+    "750ml": "gbm",
+    "90ml": "holt_winters",
+    "Beer": "gbm",
+    "Wine": "gbm"
+   },
+   "holdout_wape_selected": 0.4961,
+   "backtest_wape_selected": 0.4981,
+   "holdout_wape_seasonal_naive": 0.6569,
+   "holdout_coverage_80_selected": 0.8237,
+   "champion_wape_on_same_holdout": 0.4965,
+   "status": "archived",
+   "decision": "candidate 0.4961 <= champion 0.4965 x (1+0.02)"
+  },
+  {
+   "version": "v20261024-cf5c843",
+   "as_of": "2026-10-24",
+   "created_at": "2026-11-11T22:15:20+00:00",
+   "code_hash": "75fcc76214f1",
+   "data_hash": "92ded82940de",
+   "selection": {
+    "150ml": "gbm",
+    "180ml": "gbm",
+    "375ml": "gbm",
+    "750ml": "gbm",
+    "90ml": "gbm",
+    "Beer": "holt_winters",
+    "Wine": "gbm"
+   },
+   "holdout_wape_selected": 0.4915,
+   "backtest_wape_selected": 0.4978,
+   "holdout_wape_seasonal_naive": 0.6392,
+   "holdout_coverage_80_selected": 0.7984,
+   "champion_wape_on_same_holdout": 0.4942,
+   "status": "archived",
+   "decision": "candidate 0.4915 <= champion 0.4942 x (1+0.02)"
+  },
+  {
+   "version": "v20261031-eed90a8",
+   "as_of": "2026-10-31",
+   "created_at": "2026-11-11T22:17:19+00:00",
+   "code_hash": "75fcc76214f1",
+   "data_hash": "207d7799b23c",
+   "selection": {
+    "150ml": "gbm",
+    "180ml": "gbm",
+    "375ml": "gbm",
+    "750ml": "gbm",
+    "90ml": "holt_winters",
+    "Beer": "gbm",
+    "Wine": "gbm"
+   },
+   "holdout_wape_selected": 0.4927,
+   "backtest_wape_selected": 0.5003,
+   "holdout_wape_seasonal_naive": 0.6739,
+   "holdout_coverage_80_selected": 0.809,
+   "champion_wape_on_same_holdout": 0.4912,
+   "status": "production",
+   "decision": "candidate 0.4927 <= champion 0.4912 x (1+0.02)"
+  }
+ ]
+}

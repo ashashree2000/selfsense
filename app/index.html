@@ -1,0 +1,2866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SelfSense — Retail POS + Forecasting Demo</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5a1229">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SelfSense">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- SelfSense demo: Google Identity Services + Firebase scripts removed on purpose (integrations disabled in demo) -->
+<style>
+  :root{
+    --wine:#7b1e3a;
+    --wine-dark:#5a1229;
+    --wine-light:#a8375a;
+    --gold:#c9971c;
+    --cream:#faf6ee;
+    --paper:#ffffff;
+    --ink:#2b2320;
+    --muted:#6b615c;
+    --green:#1f8a4c;
+    --green-bg:#e7f6ec;
+    --red:#c0392b;
+    --red-bg:#fdeceb;
+    --amber:#b9770e;
+    --amber-bg:#fdf3e0;
+    --blue:#215d9c;
+    --blue-bg:#e8f0fb;
+    --border:#e6dcd0;
+    --shadow: 0 2px 10px rgba(90,18,41,0.08);
+    font-size:18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  body{padding-bottom:78px;}
+  h1,h2,h3{margin:0 0 8px 0;}
+  button{font-family:inherit;font-size:1rem;cursor:pointer;}
+  input,select{font-family:inherit;font-size:1.05rem;}
+  .hidden{display:none !important;}
+
+  /* HEADER */
+  #topbar{
+    background:linear-gradient(135deg,var(--wine),var(--wine-dark));
+    color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
+    box-shadow:var(--shadow); position:sticky; top:0; z-index:50; gap:10px; flex-wrap:wrap;
+  }
+  #topbar .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.3rem;}
+  #topbar .brand .logo{font-size:1.8rem;}
+  #shopNameDisplay{font-weight:700; text-transform:uppercase; letter-spacing:0.5px;}
+  #topbar .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .topbtn{
+    background:rgba(255,255,255,0.18); color:#fff; border:1px solid rgba(255,255,255,0.4);
+    padding:9px 14px;border-radius:10px;font-weight:600;display:flex;align-items:center;gap:6px;
+  }
+  .topbtn:hover{background:rgba(255,255,255,0.3);}
+  #saveStatus{font-size:0.8rem;opacity:0.9;}
+  .excel-pill{background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); padding:6px 12px; border-radius:20px; font-size:0.8rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px;}
+  .excel-pill .dot{width:9px;height:9px;border-radius:50%;background:#e0a63a;}
+  .excel-pill.on .dot{background:#4ad07f;}
+  .excel-pill.off .dot{background:#e05c4a;}
+
+  /* NAV */
+  #nav{
+    position:fixed; bottom:0; left:0; right:0; background:var(--paper); border-top:2px solid var(--border);
+    display:flex; z-index:60; box-shadow:0 -2px 10px rgba(0,0,0,0.08); overflow-x:auto;
+  }
+  .navbtn{
+    flex:1; min-width:76px; background:none; border:none; padding:9px 4px 8px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--muted); font-weight:600; font-size:0.74rem;
+    border-top:3px solid transparent;
+  }
+  .navbtn .ic{font-size:1.5rem;}
+  .navbtn.active{color:var(--wine); border-top:3px solid var(--wine); background:#fdf2f5;}
+
+  @media(min-width:880px){
+    body{padding-bottom:0; padding-left:150px;}
+    #nav{ top:0; bottom:0; left:0; right:auto; width:150px; flex-direction:column; border-top:none; border-right:2px solid var(--border); padding-top:90px; overflow-y:auto;}
+    .navbtn{flex:none; padding:14px 4px; border-top:none; border-left:4px solid transparent;}
+    .navbtn.active{border-top:none; border-left:4px solid var(--wine);}
+  }
+
+  main{padding:16px; max-width:1100px; margin:0 auto;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* CARDS / GRID */
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:20px;}
+  .card{background:var(--paper); border-radius:16px; padding:16px; box-shadow:var(--shadow); border:1px solid var(--border);}
+  .card .label{color:var(--muted); font-size:0.92rem; font-weight:600; display:flex; align-items:center; gap:6px;}
+  .card .value{font-size:1.9rem; font-weight:800; margin-top:6px; color:var(--wine-dark);}
+  .card.good .value{color:var(--green);}
+  .card.bad .value{color:var(--red);}
+  .card .sub{font-size:0.85rem; color:var(--muted); margin-top:2px;}
+  .card .trend{font-size:0.85rem; font-weight:700; margin-top:4px;}
+  .card .trend.up{color:var(--green);}
+  .card .trend.down{color:var(--red);}
+
+  .stat-strip{display:flex; gap:10px; overflow-x:auto; margin-bottom:16px; padding-bottom:4px;}
+  .stat-chip{flex:0 0 auto; background:var(--paper); border:1px solid var(--border); border-radius:12px; padding:10px 14px; min-width:120px; box-shadow:var(--shadow);}
+  .stat-chip .l{font-size:0.72rem; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.02em;}
+  .stat-chip .v{font-size:1.25rem; font-weight:800; color:var(--wine-dark);}
+  .stat-chip.bad .v{color:var(--red);}
+
+  .section-title{display:flex; align-items:center; justify-content:space-between; margin:22px 0 12px;}
+  .section-title h2{font-size:1.25rem; display:flex; align-items:center; gap:8px;}
+
+  .btn{
+    border-radius:12px; padding:12px 18px; border:none; font-weight:700; display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn-primary{background:var(--wine); color:#fff;}
+  .btn-primary:hover{background:var(--wine-dark);}
+  .btn-gold{background:var(--gold); color:#3a2a05;}
+  .btn-outline{background:#fff; border:2px solid var(--wine); color:var(--wine);}
+  .btn-flat{background:#f1e9dd; color:var(--ink);}
+  .btn-danger{background:var(--red); color:#fff;}
+  .btn-blue{background:var(--blue); color:#fff;}
+  .btn-sm{padding:7px 12px; font-size:0.85rem; border-radius:9px;}
+  .btn-block{width:100%; justify-content:center;}
+  .btn:disabled{opacity:0.5; cursor:not-allowed;}
+
+  table{width:100%; border-collapse:collapse; background:var(--paper); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);}
+  thead th{background:var(--wine); color:#fff; text-align:left; padding:10px 12px; font-size:0.85rem; position:sticky; top:0;}
+  tbody td{padding:10px 12px; border-bottom:1px solid var(--border); font-size:0.95rem;}
+  tbody tr:hover{background:#fdf7f0;}
+  .table-wrap{overflow-x:auto; border-radius:12px;}
+  .tag{padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; display:inline-block;}
+  .tag-low{background:var(--red-bg); color:var(--red);}
+  .tag-ok{background:var(--green-bg); color:var(--green);}
+  .tag-med{background:var(--amber-bg); color:var(--amber);}
+  .tag-cat{background:#eee2f0; color:#6a3577;}
+  .tag-blue{background:var(--blue-bg); color:var(--blue);}
+
+  .empty{text-align:center; padding:40px 20px; color:var(--muted);}
+  .empty .big{font-size:3rem;}
+
+  .searchbar{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .searchbar input, .searchbar select{padding:11px 14px; border-radius:10px; border:2px solid var(--border); flex:1; min-width:140px;}
+
+  .scanbox{display:flex; gap:10px; align-items:center; background:#fff8ea; border:2px dashed var(--gold); border-radius:14px; padding:14px; margin-bottom:16px;}
+  .scanbox .ic{font-size:1.8rem;}
+  .scanbox input{flex:1; padding:13px 14px; border-radius:10px; border:2px solid var(--gold); font-size:1.15rem; font-weight:700;}
+
+  /* MODAL */
+  .modal-bg{position:fixed; inset:0; background:rgba(43,35,32,0.55); display:flex; align-items:flex-end; justify-content:center; z-index:200;}
+  @media(min-width:700px){.modal-bg{align-items:center;}}
+  .modal{background:#fff; border-radius:20px 20px 0 0; padding:22px; width:100%; max-width:560px; max-height:92vh; overflow-y:auto;}
+  @media(min-width:700px){.modal{border-radius:20px;}}
+  .modal h3{font-size:1.25rem; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-weight:700; margin-bottom:6px; font-size:0.92rem; color:var(--muted);}
+  .field input, .field select, .field textarea{width:100%; padding:12px 14px; border-radius:10px; border:2px solid var(--border); background:#fffdfa;}
+  .field input:focus, .field select:focus{outline:none; border-color:var(--wine-light);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .modal-actions{display:flex; gap:10px; margin-top:18px;}
+  .modal-actions .btn{flex:1;}
+
+  /* CART (purchase/sale) */
+  .cart-row{display:flex; align-items:center; gap:10px; background:var(--paper); border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:8px; flex-wrap:wrap;}
+  .cart-row .info{flex:1; min-width:140px;}
+  .cart-row .info b{display:block;}
+  .cart-row .info span{color:var(--muted); font-size:0.85rem;}
+  .qtybtns{display:flex; align-items:center; gap:6px;}
+  .qtybtns button{width:32px; height:32px; border-radius:8px; border:1px solid var(--border); background:#f5efe6; font-weight:800; font-size:1.1rem;}
+  .qtybtns input{width:48px; text-align:center; padding:6px 2px; border-radius:8px; border:1px solid var(--border);}
+  .cart-total-bar{position:sticky; bottom:0; background:var(--paper); border-top:2px solid var(--border); padding:14px; margin:0 -16px; box-shadow:0 -4px 10px rgba(0,0,0,0.06);}
+  .cart-total-bar .amt{font-size:1.6rem; font-weight:800; color:var(--wine-dark);}
+
+  .toast-wrap{position:fixed; top:14px; right:14px; z-index:500; display:flex; flex-direction:column; gap:8px; max-width:90vw;}
+  .toast{background:var(--ink); color:#fff; padding:12px 18px; border-radius:10px; box-shadow:var(--shadow); font-weight:600; animation:fadein 0.2s;}
+  .toast.err{background:var(--red);}
+  .toast.ok{background:var(--green);}
+  @keyframes fadein{from{opacity:0; transform:translateY(-8px);} to{opacity:1; transform:translateY(0);}}
+
+  .pill-tabs{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .pill-tabs button{padding:9px 16px; border-radius:20px; border:2px solid var(--border); background:#fff; font-weight:700; color:var(--muted);}
+  .pill-tabs button.active{background:var(--wine); border-color:var(--wine); color:#fff;}
+
+  .help{color:var(--muted); font-size:0.88rem; margin-top:-4px; margin-bottom:14px;}
+  .banner{background:var(--amber-bg); color:#7a4d05; border:2px solid #f0d99b; padding:12px 16px; border-radius:12px; margin-bottom:16px; display:flex; gap:10px; align-items:flex-start;}
+  .banner.info{background:var(--blue-bg);border-color:#bcd6f5;color:#204a75;}
+  .banner.ok{background:var(--green-bg); border-color:#bfe3cc; color:#155c31;}
+  .banner button{white-space:nowrap;}
+  .fab-add{position:fixed; right:18px; bottom:92px; z-index:40; border-radius:50%; width:60px; height:60px; font-size:1.8rem; box-shadow:0 4px 14px rgba(0,0,0,0.25);}
+  @media(min-width:880px){.fab-add{bottom:26px;}}
+  .receipt{font-family:monospace; background:#fff; border:1px dashed var(--border); padding:14px; border-radius:10px; white-space:pre-wrap; font-size:0.9rem;}
+  .kv{display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--border);}
+  .kv b{color:var(--wine-dark);}
+  footer.note{text-align:center; color:var(--muted); font-size:0.8rem; margin:30px 0 10px;}
+  .chip{display:inline-flex; align-items:center; gap:6px; background:#f1e9dd; padding:6px 12px; border-radius:20px; font-weight:700; font-size:0.85rem; margin:0 6px 6px 0;}
+  .chip button{background:none; border:none; color:var(--red); font-weight:900; cursor:pointer; font-size:1rem; padding:0;}
+  .chart-legend{display:flex; gap:16px; margin-bottom:8px; flex-wrap:wrap;}
+  .chart-legend span{display:flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:700; color:var(--muted);}
+  .chart-legend i{width:14px; height:4px; border-radius:2px; display:inline-block;}
+  .chart-wrap{background:var(--paper); border-radius:16px; padding:16px; box-shadow:var(--shadow); border:1px solid var(--border); margin-bottom:20px; overflow-x:auto;}
+  .drop-note{font-size:0.8rem; fill:var(--red); font-weight:700;}
+  .t-account{margin-bottom:24px;}
+  .t-account h3{background:var(--wine); color:#fff; padding:10px 14px; border-radius:12px 12px 0 0; margin:0;}
+  .t-wrap{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); border:1px solid var(--border); border-radius:0 0 12px 12px; overflow:hidden;}
+  @media(max-width:640px){ .t-wrap{grid-template-columns:1fr;} }
+  .t-side{background:var(--paper);}
+  .t-side .t-head{background:#f1e9dd; padding:8px 12px; font-weight:800; font-size:0.85rem; display:flex; justify-content:space-between;}
+  .t-side table{box-shadow:none; border-radius:0; width:100%;}
+  .t-side td{padding:8px 12px; border-bottom:1px solid var(--border); font-size:0.9rem;}
+  .t-side td.amt-col{text-align:right; white-space:nowrap; font-weight:600;}
+  .t-side tr.total-row td{font-weight:800; background:#fdf7f0; border-top:2px solid var(--wine);}
+  tr.reg-cat-header td{background:var(--wine); color:#fff; font-weight:800; font-size:0.85rem;}
+  tr.reg-subtotal td{background:#f1e9dd; font-weight:800; border-top:1px solid var(--wine-light);}
+  tr.reg-grand-total td{background:var(--gold); color:#3a2a05; font-weight:900; border-top:2px solid var(--wine-dark);}
+</style>
+</head>
+<body>
+
+<div id="lockScreen" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#3a0d0d,#5c1a1a);display:none;align-items:center;justify-content:center;flex-direction:column;color:#fdf6ec;font-family:inherit;">
+  <div style="background:#fff;color:#2a1a0a;border-radius:14px;padding:32px 28px;max-width:360px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.4);text-align:center;">
+    <div style="font-size:40px;">🍷🔒</div>
+    <h2 style="margin:10px 0 4px;">Shop Access Locked</h2>
+    <p style="font-size:13px;color:#6b5b4d;margin-bottom:16px;">Enter the shop PIN to open the till.</p>
+    <input id="lockPinInput" type="password" inputmode="numeric" placeholder="PIN" style="width:100%;padding:10px;font-size:18px;text-align:center;letter-spacing:4px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;" autocomplete="off">
+    <button id="lockPinSubmit" style="width:100%;padding:10px;font-size:15px;font-weight:700;background:var(--wine-dark,#5c1a1a);color:#fff;border:none;border-radius:8px;cursor:pointer;">Unlock</button>
+    <div id="lockPinError" style="color:#b00020;font-size:12px;margin-top:8px;min-height:16px;"></div>
+  </div>
+</div>
+
+<div id="loginScreen" style="position:fixed;inset:0;z-index:99998;background:linear-gradient(135deg,#3a0d0d,#5c1a1a);display:none;align-items:center;justify-content:center;flex-direction:column;color:#fdf6ec;font-family:inherit;">
+  <div style="background:#fff;color:#2a1a0a;border-radius:14px;padding:32px 28px;max-width:360px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,.4);text-align:center;">
+    <div style="font-size:40px;">🍷🔄</div>
+    <h2 style="margin:10px 0 4px;">Shop Login</h2>
+    <p style="font-size:13px;color:#6b5b4d;margin-bottom:16px;">Sign in to see live, shared shop data across every device.</p>
+    <input id="loginEmail" type="email" placeholder="Email" style="width:100%;padding:10px;font-size:15px;border:1px solid #ccc;border-radius:8px;margin-bottom:8px;" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="Password" style="width:100%;padding:10px;font-size:15px;border:1px solid #ccc;border-radius:8px;margin-bottom:10px;" autocomplete="current-password">
+    <button id="loginSubmit" style="width:100%;padding:10px;font-size:15px;font-weight:700;background:var(--wine-dark,#5c1a1a);color:#fff;border:none;border-radius:8px;cursor:pointer;margin-bottom:8px;">Sign In</button>
+    <div style="font-size:12px;color:#6b5b4d;">First time setting this up? <a href="#" id="loginShowCreateOwner">Create the shop's first login</a></div>
+    <div id="loginError" style="color:#b00020;font-size:12px;margin-top:8px;min-height:16px;"></div>
+  </div>
+</div>
+
+<div id="demoBanner" style="background:#215d9c;color:#fff;font-size:13px;padding:6px 12px;text-align:center;position:relative;z-index:60;">SelfSense demo · <b>all data is SYNTHETIC</b> · cloud backups/sync disabled · see the <b>Insights</b> tab for the forecasting layer</div>
+<div id="topbar">
+  <div class="brand"><span class="logo">🍷</span><span id="shopNameDisplay">Wine Shop Manager</span></div>
+  <div class="actions">
+    <span id="saveStatus"></span>
+    <span class="excel-pill on" id="netPill" title="Every change saves to this device instantly either way — this only affects cloud backups/sync"><span class="dot"></span><span id="netPillText">Online</span></span>
+    <span class="excel-pill off" id="excelPill" title="Tap to manage Excel connection"><span class="dot"></span><span id="excelPillText">Excel: Not Connected</span></span>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
+
+<nav id="nav">
+  <button class="navbtn active" data-screen="sell"><span class="ic">🧾</span>Sell</button>
+  <button class="navbtn" data-screen="stock"><span class="ic">📦</span>Stock</button>
+  <button class="navbtn" data-screen="purchase"><span class="ic">🚚</span>Purchase</button>
+  <button class="navbtn" data-screen="loss"><span class="ic">⚠️</span>Loss</button>
+  <button class="navbtn" data-screen="accounts"><span class="ic">🧮</span>Accounts</button>
+  <button class="navbtn" data-screen="trends"><span class="ic">📈</span>Trends</button>
+  <button class="navbtn" data-screen="reports"><span class="ic">📊</span>Reports</button>
+  <button class="navbtn" data-screen="insights"><span class="ic">🔮</span>Insights</button>
+  <button class="navbtn" data-screen="settings"><span class="ic">⚙️</span>Settings</button>
+</nav>
+
+<main>
+
+  <!-- SELL (DEFAULT / HOME) -->
+  <div class="screen active" id="screen-sell">
+    <h1>🧾 Sell</h1>
+    <div class="stat-strip" id="statStrip"></div>
+
+    <div id="excelReconnectBanner" class="banner hidden">
+      <div style="flex:1;">🔌 <b>Reconnect your Excel file</b> — your browser needs one tap to resume auto-saving to it.</div>
+      <button class="btn btn-gold btn-sm" id="btnReconnectExcel">Reconnect</button>
+    </div>
+
+    <div class="scanbox">
+      <span class="ic">🔦</span>
+      <input type="text" id="scanInput" placeholder="Scan barcode or type it, then press Enter" autocomplete="off" title="Works with any USB or Bluetooth barcode scanner — it types the code here and presses Enter automatically">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <label style="font-size:0.8rem;color:var(--muted);font-weight:700;">Qty</label>
+        <input type="number" id="scanQty" value="1" min="1" style="width:56px;padding:10px 6px;border-radius:8px;border:2px solid var(--gold);text-align:center;">
+      </div>
+    </div>
+
+    <div class="field"><label>Or pick a product manually</label>
+      <select id="saleProductPicker"><option value="">-- Select product --</option></select>
+    </div>
+
+    <div class="row2">
+      <div class="field"><label><input type="checkbox" id="saleCreditToggle" style="width:auto;"> Credit sale (customer pays later)</label></div>
+      <div class="field" id="saleCustomerWrap" style="display:none;">
+        <label>Customer Name</label>
+        <input type="text" id="saleCustomerName" placeholder="required for credit">
+      </div>
+    </div>
+
+    <div id="lastSaleBanner" class="banner ok hidden">
+      <div style="flex:1;" id="lastSaleText"></div>
+      <button class="btn btn-danger btn-sm" id="btnUndoLastSale">↩️ Undo</button>
+    </div>
+
+    <div class="section-title"><h2>📜 Recent Sales (today, by product)</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Product</th><th>Category</th><th>Qty Sold</th><th>Revenue ₹</th></tr></thead>
+      <tbody id="saleHistoryBody"></tbody>
+    </table></div>
+  </div>
+
+  <!-- STOCK -->
+  <div class="screen" id="screen-stock">
+    <h1>📦 Stock Register</h1>
+    <p class="help">Opening/Closing stock are exact (reconstructed from the stock ledger, so any loss/breakage is already reflected). Grouped by category with a subtotal per category and a grand total at the bottom.</p>
+    <div class="searchbar">
+      <input type="text" id="stockSearch" placeholder="🔍 Search by name, brand or barcode...">
+      <select id="stockCategoryFilter"><option value="">All Categories</option></select>
+      <input type="date" id="stockRegDate" style="max-width:170px;">
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Barcode</th><th>Name</th><th>Opening</th><th>Cost ₹</th><th>Sale ₹</th><th>Sold Today</th><th>Closing</th><th>Received</th><th>Sales Amount ₹</th><th></th></tr></thead>
+      <tbody id="stockBody"></tbody>
+    </table></div>
+    <div class="empty hidden" id="stockEmpty"><div class="big">🍾</div><p>No products yet. Tap + to add your first product.</p></div>
+    <button class="btn btn-primary fab-add" id="btnAddProduct" title="Add a new product to Stock">+</button>
+  </div>
+
+  <!-- PURCHASE (Tally-style voucher entry) -->
+  <div class="screen" id="screen-purchase">
+    <h1>🚚 New Purchase (Stock In)</h1>
+    <p class="help">Just like a Tally purchase voucher: type a product on each line — a new row appears automatically for the next one. Fill any two of Qty / Rate / Amount and the third is calculated for you.</p>
+    <div class="row2">
+      <div class="field"><label>Supplier</label>
+        <select id="purchaseSupplier" onchange="handleSupplierSelectChange(this)"><option value="">-- Select supplier --</option></select>
+      </div>
+      <div class="row2" style="gap:8px;">
+        <div class="field"><label>Invoice / Bill No.</label><input type="text" id="purchaseInvoiceNo" placeholder="e.g. INV-2201"></div>
+        <div class="field"><label>Date</label><input type="date" id="purchaseDate"></div>
+      </div>
+    </div>
+    <div class="scanbox">
+      <span class="ic">🔦</span>
+      <input type="text" id="purchaseScanInput" placeholder="Scan barcode to add/increment a line" autocomplete="off">
+    </div>
+    <button class="btn btn-flat" id="btnNewProductOnPurchase" type="button" style="margin:8px 0;">➕ New Product (not in Stock yet)</button>
+    <p class="help">Tip: you don't need to add a product to Stock first — just type its name on a blank line below, or tap "New Product" above, and this sheet will create it for you.</p>
+    <datalist id="purchaseProductList"></datalist>
+
+    <div class="table-wrap"><table id="purchaseGridTable">
+      <thead><tr><th style="min-width:180px;">Product</th><th>Category</th><th style="width:80px;">Qty</th><th style="width:100px;">Rate ₹</th><th style="width:110px;">Amount ₹</th><th></th></tr></thead>
+      <tbody id="purchaseGridBody"></tbody>
+    </table></div>
+
+    <div class="cart-total-bar">
+      <div class="kv"><span>Total Qty</span><b id="purchaseTotalItems">0</b></div>
+      <div class="kv"><span>Total Amount</span><span class="amt" id="purchaseTotalCost">₹0</span></div>
+      <div class="field" style="margin-top:10px;"><label><input type="checkbox" id="purchaseCreditToggle" style="width:auto;"> 🔴 Credit purchase (not paying supplier in full right now)</label></div>
+      <div class="field" id="purchaseAmountPaidWrap" style="display:none;">
+        <label>Amount Paid Now (₹)</label>
+        <input type="number" id="purchaseAmountPaid" min="0" step="0.01">
+      </div>
+      <button class="btn btn-primary btn-block" id="btnCompletePurchase">✅ Save Purchase Voucher &amp; Add to Stock</button>
+    </div>
+
+    <div class="section-title"><h2>📜 Purchase History</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Invoice</th><th>Supplier</th><th>Items</th><th>Total ₹</th><th>Due ₹</th></tr></thead>
+      <tbody id="purchaseHistoryBody"></tbody>
+    </table></div>
+  </div>
+
+  <!-- LOSS / BREAKAGE / LEAKAGE -->
+  <div class="screen" id="screen-loss">
+    <h1>⚠️ Report Loss / Breakage</h1>
+    <p class="help">Record bottles lost to breakage while loading/unloading, breakage or leakage in transit, theft, or expiry. This keeps your stock count accurate and shows up in Reports.</p>
+    <div class="field"><label>Product *</label>
+      <select id="lossProduct"><option value="">-- Select product --</option></select>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Quantity Lost *</label><input type="number" id="lossQty" min="1" value="1"></div>
+      <div class="field"><label>Reason *</label>
+        <select id="lossReason">
+          <option>Breakage - Loading/Unloading</option>
+          <option>Breakage - In Transit</option>
+          <option>Leakage</option>
+          <option>Theft / Missing</option>
+          <option>Expired</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Notes (optional)</label><input type="text" id="lossNotes" placeholder="e.g. crate dropped during unloading"></div>
+    <button class="btn btn-danger btn-block" id="btnSaveLoss">⚠️ Record Loss &amp; Deduct Stock</button>
+
+    <div class="section-title"><h2>📜 Recent Losses</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Product</th><th>Reason</th><th>Qty</th><th>Est. Value ₹</th><th>Notes</th></tr></thead>
+      <tbody id="lossHistoryBody"></tbody>
+    </table></div>
+  </div>
+
+  <!-- ACCOUNTS -->
+  <div class="screen" id="screen-accounts">
+    <h1>🧮 Accounts</h1>
+    <div class="pill-tabs">
+      <button class="active" data-acc="creditors">Suppliers Owed (Creditors)</button>
+      <button data-acc="debtors">Customers Owe Us (Debtors)</button>
+      <button data-acc="expenses">Other Expenses</button>
+      <button data-acc="balance">Balance Sheet</button>
+    </div>
+
+    <div id="acc-creditors" class="acc-panel">
+      <p class="help">Money you owe suppliers for stock bought on credit.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Supplier</th><th>Total Purchased ₹</th><th>Paid ₹</th><th>Due ₹</th><th></th></tr></thead>
+        <tbody id="creditorsBody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="acc-debtors" class="acc-panel hidden">
+      <p class="help">Money customers owe you from credit sales.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Customer</th><th>Total Billed ₹</th><th>Paid ₹</th><th>Due ₹</th><th></th></tr></thead>
+        <tbody id="debtorsBody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="acc-expenses" class="acc-panel hidden">
+      <p class="help">Rent, electricity, salary, transport — anything besides buying stock.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount ₹</th><th></th></tr></thead>
+        <tbody id="expensesBody"></tbody>
+      </table></div>
+      <div class="empty hidden" id="expensesEmpty"><div class="big">💵</div><p>No expenses recorded yet.</p></div>
+      <button class="btn btn-primary" id="btnAddExpense" style="margin-top:14px;">➕ Add Expense</button>
+    </div>
+
+    <div id="acc-balance" class="acc-panel hidden">
+      <p class="help">A simplified snapshot for a quick health-check — not a substitute for your accountant's statutory balance sheet.</p>
+      <div class="row2">
+        <div class="field"><label>Cash in Hand (₹)</label><input type="number" id="setCashInHand" min="0"></div>
+        <div class="field"><label>Bank Balance (₹)</label><input type="number" id="setBankBalance" min="0"></div>
+      </div>
+      <button class="btn btn-outline btn-sm" id="btnSaveCashBank">💾 Save</button>
+      <div class="section-title"><h2>Assets</h2></div>
+      <div class="table-wrap"><table><tbody id="balanceAssetsBody"></tbody></table></div>
+      <div class="section-title"><h2>Liabilities</h2></div>
+      <div class="table-wrap"><table><tbody id="balanceLiabilitiesBody"></tbody></table></div>
+      <div class="cards" id="balanceSummaryCards" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+  <!-- TRENDS -->
+  <div class="screen" id="screen-trends">
+    <h1>📈 Sales Trends</h1>
+    <div class="cards" id="compareCards"></div>
+
+    <div class="pill-tabs">
+      <button class="active" data-trend="daily">Daily (30 days)</button>
+      <button data-trend="monthly">Monthly (12 months)</button>
+      <button data-trend="yearly">Yearly</button>
+    </div>
+    <div class="chart-legend">
+      <span><i style="background:#7b1e3a;"></i>Revenue</span>
+      <span><i style="background:#1f8a4c;"></i>Profit (Revenue − Cost)</span>
+    </div>
+    <div class="chart-wrap"><div id="trendChart"></div></div>
+    <p class="help" id="dropNoteText"></p>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="screen" id="screen-reports">
+    <h1>📊 Reports</h1>
+    <div class="pill-tabs">
+      <button class="active" data-report="pl">Profit &amp; Loss</button>
+      <button data-report="dailycat">Daily Sales by Category</button>
+      <button data-report="ledger">Stock Ledger</button>
+      <button data-report="topsellers">Top Sellers</button>
+      <button data-report="lowstock">Low Stock</button>
+      <button data-report="leakage">Leakage Summary</button>
+    </div>
+
+    <div id="report-pl" class="report-panel">
+      <div class="pill-tabs">
+        <button data-plquick="today">Today</button>
+        <button data-plquick="yesterday">Yesterday</button>
+        <button data-plquick="week">This Week</button>
+        <button data-plquick="month" class="active">This Month</button>
+        <button data-plquick="year">This FY</button>
+      </div>
+      <div class="row2">
+        <div class="field"><label>From Date</label><input type="date" id="plFrom"></div>
+        <div class="field"><label>To Date</label><input type="date" id="plTo"></div>
+      </div>
+      <button class="btn btn-outline" id="btnRunPL">🔄 Calculate</button>
+      <div class="cards" id="plSummaryCard" style="margin-top:16px;"></div>
+      <div id="plTAccounts" style="margin-top:16px;"></div>
+      <p class="help">Opening/Closing Stock values are estimated using each product's current cost price applied backward through the stock ledger — a close approximation, not an audited figure.</p>
+    </div>
+
+    <div id="report-dailycat" class="report-panel hidden">
+      <div class="field" style="max-width:220px;"><label>Date</label><input type="date" id="dailyCatDate"></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Category</th><th>Qty Sold</th><th>Revenue ₹</th></tr></thead>
+        <tbody id="dailyCatBody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="report-ledger" class="report-panel hidden">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Product</th><th>Type</th><th>Qty Change</th><th>Balance After</th><th>Notes</th></tr></thead>
+        <tbody id="ledgerBody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="report-topsellers" class="report-panel hidden">
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>Product</th><th>Qty Sold</th><th>Revenue ₹</th></tr></thead>
+        <tbody id="topSellersBody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="report-lowstock" class="report-panel hidden">
+      <div class="table-wrap"><table>
+        <thead><tr><th>Product</th><th>Current Stock</th><th>Reorder Level</th></tr></thead>
+        <tbody id="lowStockReportBody"></tbody>
+      </table></div>
+    </div>
+
+    <div id="report-leakage" class="report-panel hidden">
+      <div class="cards" id="leakageCards"></div>
+      <div class="section-title"><h2>By Reason</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Reason</th><th>Bottles Lost</th><th>Est. Value ₹</th></tr></thead>
+        <tbody id="leakageByReasonBody"></tbody>
+      </table></div>
+      <div class="section-title"><h2>By Product</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Product</th><th>Bottles Lost</th><th>Est. Value ₹</th></tr></thead>
+        <tbody id="leakageByProductBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="screen" id="screen-insights"><div id="insightsRoot"><p class="help">Loading insights…</p></div></div>
+
+  <div class="screen" id="screen-settings">
+    <h1>⚙️ Settings</h1>
+
+    <div class="section-title"><h2>🏪 Shop</h2></div>
+    <div class="field"><label>Shop Name</label><input type="text" id="setShopName"></div>
+    <div class="field"><label>Currency Symbol</label><input type="text" id="setCurrency" maxlength="3"></div>
+    <div class="field"><label>Default Low-Stock Alert Level</label><input type="number" id="setLowStockDefault" min="0"></div>
+    <button class="btn btn-primary" id="btnSaveSettings">💾 Save Shop Settings</button>
+
+    <div class="section-title"><h2>🏷️ Product Categories</h2></div>
+    <p class="help">Categories are based on bottle size (as is standard for spirits sold by volume). Add your own any time.</p>
+    <div id="categoryChips"></div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input type="text" id="newCategoryInput" placeholder="e.g. 60ml" style="flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);">
+      <button class="btn btn-flat" id="btnAddCategory">➕ Add</button>
+    </div>
+
+    <div class="section-title"><h2>🧾 Expense Categories</h2></div>
+    <p class="help">These show up in the Category dropdown on Accounts → Add Expense. Add as many as your shop needs.</p>
+    <div id="expenseCategoryChips"></div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input type="text" id="newExpenseCategoryInput" placeholder="e.g. Internet Bill" style="flex:1;padding:10px;border-radius:10px;border:2px solid var(--border);">
+      <button class="btn btn-flat" id="btnAddExpenseCategory">➕ Add</button>
+    </div>
+
+    <div class="section-title"><h2>🔒 Shop Access PIN</h2></div>
+    <div class="banner info">💡 The link to this app is public (anyone with the URL can open it unless you set a PIN here). Set one so only your staff/family can see today's sales and stock. Leave blank to keep the app open to anyone with the link.</div>
+    <div class="field"><label>PIN (4–8 digits/letters)</label><input type="text" id="setAppPin" placeholder="e.g. 4821"></div>
+    <button class="btn btn-flat" id="btnSaveAppPin">💾 Save PIN</button>
+
+    <div class="section-title"><h2>🔄 Live Multi-Device Sync (optional)</h2></div>
+<div class="banner info" style="background:#fdeceb;border-color:#f3c1bb;color:#8a2a1f;">🚫 <b>Disabled in demo.</b> This is a public demo with synthetic data; this integration is switched off in code and cannot connect to any account.</div>
+    <div class="banner info">💡 Turn this on if more than one person/device needs to see the <b>same</b> live sales and stock data at once (e.g. two billing counters, or owner checking from home while staff bills in the shop). Without this, each device keeps its own local copy, synced only through nightly backups — which is simpler and works fine for a single till. See the guide for exact one-time setup steps (free Firebase project).</div>
+    <div class="field"><label>Firebase config (paste the full snippet from your Firebase console)</label><textarea id="setFirebaseConfig" rows="4" style="width:100%;padding:10px;border-radius:10px;border:2px solid var(--border);font-family:monospace;font-size:12px;" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn btn-gold" id="btnSaveFirebaseConfig">💾 Save &amp; Connect Sync</button>
+      <button class="btn btn-flat hidden" id="btnFirebaseSignOut">🚪 Sign Out</button>
+      <button class="btn btn-flat hidden" id="btnFirebaseDisable">⏹️ Turn Off Sync</button>
+    </div>
+    <div id="firebaseStatusLine" class="help" style="margin-top:10px;"></div>
+
+    <div class="section-title"><h2>🤝 Suppliers</h2></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Phone</th><th>Address</th><th>GST No.</th><th></th></tr></thead>
+      <tbody id="suppliersBody"></tbody>
+    </table></div>
+    <div class="empty hidden" id="suppliersEmpty"><p>No suppliers yet.</p></div>
+    <button class="btn btn-flat" id="btnAddSupplier" style="margin-top:10px;">➕ Add Supplier</button>
+
+    <div class="section-title"><h2>📁 Excel File (Auto-Save Backend)</h2></div>
+    <div class="banner info">💡 <b>If this computer breaks or is lost, this Excel file is your only local copy.</b> For free protection: (1) when connecting below, choose a location inside your <b>Google Drive</b> or <b>OneDrive</b> desktop-sync folder if you have one installed — it will then back up to the cloud automatically at no cost, or (2) turn on the Telegram backup further down, which sends a copy of this file to your phone/group every night for free.</div>
+    <p class="help" id="fsApiHelp"></p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-gold" id="btnConnectExcel">🔗 Connect / Change Excel File</button>
+      <button class="btn btn-outline" id="btnImport2">📥 Load a Backup Excel File</button>
+      <button class="btn btn-flat" id="btnExport2">💾 Download Backup Copy</button>
+    </div>
+    <div id="excelStatusLine" class="help" style="margin-top:10px;"></div>
+
+    <div class="section-title"><h2>☁️ Google Drive Backup (automatic)</h2></div>
+<div class="banner info" style="background:#fdeceb;border-color:#f3c1bb;color:#8a2a1f;">🚫 <b>Disabled in demo.</b> This is a public demo with synthetic data; this integration is switched off in code and cannot connect to any account.</div>
+    <p class="help">On top of the local Excel file, this can push a copy straight to your own Google Drive automatically — no desktop sync app required, works from any device. One-time setup: create a free Google OAuth Client ID for this app (see the README for the exact steps) and paste it below.</p>
+    <div class="field"><label>Google OAuth Client ID</label><input type="text" id="setGdriveClientId" placeholder="xxxxxxxxxx.apps.googleusercontent.com"></div>
+    <div class="field"><label><input type="checkbox" id="setGdriveEnabled" style="width:auto;"> Auto-backup to Drive a little while after every change</label></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btnSaveGdriveSettings">💾 Save</button>
+      <button class="btn btn-gold" id="btnConnectGdrive">🔗 Connect Google Drive</button>
+      <button class="btn btn-outline" id="btnGdriveBackupNow">☁️ Backup to Drive Now</button>
+    </div>
+    <div id="gdriveStatusLine" class="help" style="margin-top:10px;"></div>
+
+    <div class="section-title"><h2>🤖 Telegram Daily Summary &amp; Free Backup</h2></div>
+<div class="banner info" style="background:#fdeceb;border-color:#f3c1bb;color:#8a2a1f;">🚫 <b>Disabled in demo.</b> This is a public demo with synthetic data; this integration is switched off in code and cannot connect to any account.</div>
+    <p class="help">Get an automatic business summary sent to a Telegram chat or group at 2:00 PM and 9:00 PM — as long as this app is open in a browser tab at that time. The 9 PM message also carries your Excel file as an attachment, so a copy of your data lands somewhere other than the shop's computer every night, for free. Create a free bot via <b>@BotFather</b> on Telegram to get a token, then add your bot to your group and get the chat ID (e.g. via @userinfobot or @getidsbot).</p>
+    <div class="field"><label>Telegram Bot Token</label><input type="text" id="setTgToken" placeholder="123456:ABC-DEF..."></div>
+    <div class="field"><label>Telegram Chat ID(s) — comma-separated for multiple people/groups</label><input type="text" id="setTgChatId" placeholder="e.g. 123456789, -1001234567890"></div>
+    <p class="help" style="margin-top:-6px;">Each one must be a <b>Chat ID</b>, not a phone number — Telegram bots can't message a phone number directly. Easiest for several people: add everyone + the bot to one Telegram group and use that group's Chat ID (see README). To message people separately instead, each person must first send the bot any message, then you look up their personal Chat ID via @userinfobot and add it here.</p>
+    <div class="field"><label><input type="checkbox" id="setTgEnabled" style="width:auto;"> Auto-send at 2 PM &amp; 9 PM while app is open (9 PM includes the Excel backup)</label></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btnSaveTelegram">💾 Save Telegram Settings</button>
+      <button class="btn btn-outline" id="btnSendTelegramNow">📤 Send Summary Now</button>
+      <button class="btn btn-gold" id="btnBackupNow">📁 Backup Excel to Telegram Now</button>
+    </div>
+    <div id="tgStatusLine" class="help" style="margin-top:6px;"></div>
+  </div>
+
+</main>
+
+<div id="modalRoot"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+/* ============================= DATA MODEL ============================= */
+const DEFAULT_CATEGORIES = ["90ml","150ml","180ml","375ml","750ml","Wine","Beer"];
+const DEFAULT_EXPENSE_CATEGORIES = ["Rent","Electricity","Salary","Transport","Maintenance","Licence/Excise Fee","Other"];
+
+let DB = null;
+const STORAGE_KEY = "selfsenseDemoDB_v1";
+const DEMO_MODE = true; // SelfSense demo: Telegram, Google Drive and Firebase sync are hard-disabled
+
+function blankDB(){
+  return {
+    settings: { shopName: "My Wine Shop", currency: "₹", lowStockDefault: 6, cashInHand: 0, bankBalance: 0,
+                telegramBotToken: "", telegramChatId: "", telegramEnabled: false,
+                lastTgSend2pm: "", lastTgSend9pm: "",
+                gdriveClientId: "", gdriveEnabled: false, gdriveFileId: "",
+                appPin: "", firebaseConfigJson: "", syncEnabled: false },
+    categories: DEFAULT_CATEGORIES.slice(),
+    expenseCategories: DEFAULT_EXPENSE_CATEGORIES.slice(),
+    products: [],
+    suppliers: [],
+    purchases: [],   // {id, date, invoiceNo, supplierId, supplierName, productId, productName, qty, costPrice, total, amountPaid}
+    sales: [],       // {id, date, invoiceNo, paymentMode, customerName, productId, productName, qty, sellPrice, costPriceAtSale, total, amountPaid}
+    stockLedger: [], // {id, date, productId, productName, type, qtyChange, balanceAfter, reference, notes}
+    expenses: [],    // {id, date, category, description, amount}
+    payments: [],    // {id, date, type: SupplierPayment/CustomerPayment, partyName, amount, notes}
+    counters: { product:0, supplier:0, purchase:0, sale:0, ledger:0, expense:0, payment:0, invoicePurchase:0, invoiceSale:0 }
+  };
+}
+
+function nextId(kind){ DB.counters[kind] = (DB.counters[kind]||0)+1; return DB.counters[kind]; }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function fmtMoney(n){ return DB.settings.currency + Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2}); }
+function fmtDate(d){ if(!d) return ""; const dt = new Date(d); if(isNaN(dt)) return d; return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+/* Indian Financial Year: 1 Apr - 31 Mar */
+function getFY(date){
+  const d = new Date(date); const y = d.getFullYear(); const m = d.getMonth();
+  if(m>=3){ return {startYear:y, start:new Date(y,3,1), end:new Date(y+1,2,31), label:'FY '+y+'-'+String((y+1)%100).padStart(2,'0')}; }
+  return {startYear:y-1, start:new Date(y-1,3,1), end:new Date(y,2,31), label:'FY '+(y-1)+'-'+String(y%100).padStart(2,'0')};
+}
+function fyLabelForDate(d){ return getFY(d).label; }
+function escapeHtml(str){ return String(str==null?'':str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function saveToLocalStorage(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+  catch(e){ console.warn("localStorage save failed", e); }
+}
+function loadFromLocalStorage(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      DB = JSON.parse(raw);
+      if(!DB.categories) DB.categories = DEFAULT_CATEGORIES.slice();
+      if(!DB.expenseCategories) DB.expenseCategories = DEFAULT_EXPENSE_CATEGORIES.slice();
+      if(!DB.payments) DB.payments=[];
+      if(DB.settings.gdriveClientId===undefined) DB.settings.gdriveClientId = "";
+      if(DB.settings.gdriveEnabled===undefined) DB.settings.gdriveEnabled = false;
+      if(DB.settings.gdriveFileId===undefined) DB.settings.gdriveFileId = "";
+      if(DB.settings.appPin===undefined) DB.settings.appPin = "";
+      if(DB.settings.firebaseConfigJson===undefined) DB.settings.firebaseConfigJson = "";
+      if(DB.settings.syncEnabled===undefined) DB.settings.syncEnabled = false;
+      if(!DB.counters) DB.counters = {};
+      ['product','supplier','purchase','sale','ledger','expense','payment','invoicePurchase','invoiceSale'].forEach(k=>{ DB.counters[k] = Number(DB.counters[k])||0; });
+      return true;
+    }
+  }catch(e){ console.warn("localStorage load failed", e); }
+  return false;
+}
+let saveStatusTimer;
+function setSaveStatus(msg){
+  const el = document.getElementById('saveStatus');
+  el.textContent = msg;
+  clearTimeout(saveStatusTimer);
+  saveStatusTimer = setTimeout(()=>{ el.textContent=""; }, 3000);
+}
+function persist(){
+  saveToLocalStorage();
+  renderAll();
+  writeExcelAuto();
+  scheduleGDriveBackup();
+  scheduleFirestorePush();
+}
+
+/* ============================= TOASTS ============================= */
+function toast(msg, type){
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type?(' '+type):'');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(()=>{ t.remove(); }, 2600);
+}
+
+/* ============================= INIT / SEED ============================= */
+function seedSampleData(){
+  DB = blankDB();
+  const s1 = addSupplierSilent("Bangalore Wine Distributors", "9880011223", "Peenya, Bengaluru", "29ABCDE1234F1Z5");
+  const s2 = addSupplierSilent("Karnataka Beverages Ltd", "9845567788", "Whitefield, Bengaluru", "29XYZAB5678K1Z2");
+  const p1 = addProductSilent({name:"Old Monk 750ml", brand:"Old Monk", category:"750ml", barcode:"8901000000011", costPrice:520, sellPrice:650, stockQty:24, reorderLevel:10, supplierId:s1.id});
+  const p2 = addProductSilent({name:"Kingfisher Strong 650ml", brand:"Kingfisher", category:"Beer", barcode:"8901000000028", costPrice:90, sellPrice:130, stockQty:60, reorderLevel:24, supplierId:s2.id});
+  const p3 = addProductSilent({name:"Sula Shiraz 750ml", brand:"Sula", category:"Wine", barcode:"8901000000035", costPrice:480, sellPrice:699, stockQty:12, reorderLevel:6, supplierId:s1.id});
+  const p4 = addProductSilent({name:"Royal Challenge Whisky 180ml", brand:"Royal Challenge", category:"180ml", barcode:"8901000000042", costPrice:150, sellPrice:195, stockQty:40, reorderLevel:15, supplierId:s1.id});
+  [p1,p2,p3,p4].forEach(p=> addLedgerEntry(p.id, p.name, "Opening Stock", p.stockQty, p.stockQty, "SEED", "Initial stock"));
+}
+function addSupplierSilent(name, phone, address, gst){
+  const s = {id: nextId('supplier'), name, phone, address, gst};
+  DB.suppliers.push(s); return s;
+}
+function addProductSilent(o){
+  const p = {
+    id: nextId('product'), name:o.name, brand:o.brand||o.name, category:o.category||(DB.categories[0]||"Other"),
+    barcode:o.barcode||"", costPrice:Number(o.costPrice)||0, sellPrice:Number(o.sellPrice)||0,
+    stockQty:Number(o.stockQty)||0, reorderLevel:Number(o.reorderLevel)||DB.settings.lowStockDefault, supplierId:o.supplierId||""
+  };
+  DB.products.push(p); return p;
+}
+function addLedgerEntry(productId, productName, type, qtyChange, balanceAfter, reference, notes){
+  DB.stockLedger.push({ id: nextId('ledger'), date: new Date().toISOString(), productId, productName, type, qtyChange, balanceAfter, reference, notes: notes||"" });
+}
+
+/* ============================= NAVIGATION ============================= */
+document.querySelectorAll('.navbtn').forEach(btn=>{
+  btn.addEventListener('click', ()=> showScreen(btn.dataset.screen));
+});
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.screen===name));
+  window.scrollTo(0,0);
+  if(name==='reports') runAllReports();
+  if(name==='trends') renderTrends();
+  if(name==='accounts') renderAccounts();
+  if(name==='sell') setTimeout(()=>document.getElementById('scanInput').focus(), 50);
+  if(name==='purchase'){
+    if(!document.getElementById('purchaseDate').value) document.getElementById('purchaseDate').value = todayStr();
+    setTimeout(()=>document.getElementById('purchaseScanInput').focus(), 50);
+  }
+}
+
+/* ============================= PRODUCT HELPERS ============================= */
+function getProduct(id){ return DB.products.find(p=>String(p.id)===String(id)); }
+function getSupplier(id){ return DB.suppliers.find(s=>String(s.id)===String(id)); }
+function getProductByBarcode(code){ return DB.products.find(p=>p.barcode && String(p.barcode)===String(code)); }
+
+function populateCategoryFilter(){
+  const sel = document.getElementById('stockCategoryFilter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Categories</option>' + DB.categories.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  sel.value = cur;
+}
+function populateProductSelect(sel, placeholder){
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">${placeholder}</option>` + DB.products
+    .slice().sort((a,b)=>a.name.localeCompare(b.name))
+    .map(p=>`<option value="${p.id}">${escapeHtml(p.name)} — Stock: ${p.stockQty}</option>`).join('');
+  sel.value = cur;
+}
+function populateSupplierSelect(sel){
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- Select supplier --</option>' + DB.suppliers
+    .map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')
+    + '<option value="__new__">➕ Add new supplier...</option>';
+  sel.value = cur;
+}
+function openNewSupplierModal(onCreated, onCancelled){
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>➕ Add New Supplier</h3>
+      <div class="field"><label>Supplier Name *</label><input id="ns_name" placeholder="e.g. Bangalore Wine Distributors"></div>
+      <div class="field"><label>Phone (optional)</label><input id="ns_phone" placeholder="10-digit number"></div>
+      <div class="modal-actions">
+        <button class="btn btn-flat" id="ns_cancel">Cancel</button>
+        <button class="btn btn-primary" id="ns_save">💾 Add Supplier</button>
+      </div>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(modal);
+  setTimeout(()=>{ const el=modal.querySelector('#ns_name'); if(el) el.focus(); }, 50);
+  modal.querySelector('#ns_cancel').onclick = ()=>{ modal.remove(); if(onCancelled) onCancelled(); };
+  modal.querySelector('#ns_name').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); modal.querySelector('#ns_save').click(); } });
+  modal.querySelector('#ns_save').onclick = ()=>{
+    const name = modal.querySelector('#ns_name').value.trim();
+    if(!name){ toast("Please enter a supplier name","err"); return; }
+    const dup = DB.suppliers.find(x=>x.name.trim().toLowerCase()===name.toLowerCase());
+    if(dup){ toast(`"${dup.name}" is already in your Suppliers list — pick that one instead`,"err"); return; }
+    const phone = modal.querySelector('#ns_phone').value.trim();
+    const s = addSupplierSilent(name, phone, "", "");
+    saveToLocalStorage();
+    modal.remove();
+    toast("Supplier added: "+name, "ok");
+    if(onCreated) onCreated(s);
+  };
+}
+function handleSupplierSelectChange(selectEl){
+  if(selectEl.value !== '__new__') return;
+  openNewSupplierModal(
+    (s)=>{
+      document.querySelectorAll('#purchaseSupplier, #f_supplier').forEach(sel=>{
+        populateSupplierSelect(sel);
+        sel.value = s.id;
+      });
+    },
+    ()=>{ selectEl.value = ""; }
+  );
+}
+
+/* ============================= STAT STRIP (on Sell screen) ============================= */
+function renderStatStrip(){
+  const today = todayStr();
+  const todaysSales = DB.sales.filter(s=>s.date.slice(0,10)===today);
+  const todaysRevenue = todaysSales.reduce((a,s)=>a+s.total,0);
+  const stockValue = DB.products.reduce((a,p)=>a+p.stockQty*p.costPrice,0);
+  const lowStockCount = DB.products.filter(p=>p.stockQty<=p.reorderLevel).length;
+  const chips = [
+    {l:"Today's Sales", v: fmtMoney(todaysRevenue)},
+    {l:"Stock Value", v: fmtMoney(stockValue)},
+    {l:"Low Stock", v: lowStockCount, bad: lowStockCount>0},
+    {l:"Products", v: DB.products.length},
+  ];
+  document.getElementById('statStrip').innerHTML = chips.map(c=>`
+    <div class="stat-chip ${c.bad?'bad':''}"><div class="l">${c.l}</div><div class="v">${c.v}</div></div>
+  `).join('');
+}
+
+/* ============================= RENDER: STOCK ============================= */
+function renderStock(){
+  populateCategoryFilter();
+  const dateInput = document.getElementById('stockRegDate');
+  if(!dateInput.value) dateInput.value = todayStr();
+  const date = dateInput.value;
+  const term = (document.getElementById('stockSearch').value||"").toLowerCase();
+  const cat = document.getElementById('stockCategoryFilter').value;
+  document.getElementById('stockEmpty').classList.toggle('hidden', DB.products.length>0);
+
+  const matchingProducts = DB.products.filter(p=>{
+    const matchTerm = !term || p.name.toLowerCase().includes(term) || (p.brand||"").toLowerCase().includes(term) || (p.barcode||"").includes(term);
+    const matchCat = !cat || p.category===cat;
+    return matchTerm && matchCat;
+  });
+  const rowsById = {};
+  buildStockRegisterRows(date).forEach(r=>rowsById[r.name]=r); // keyed by name; fine since names are effectively unique in this app
+
+  function rowHtml(p){
+    const r = rowsById[p.name] || {barcode:p.barcode, opening:0, costPrice:p.costPrice, sellPrice:p.sellPrice, soldToday:0, closing:p.stockQty, received:0, salesAmount:0};
+    let lowTag = '';
+    if(p.stockQty<=p.reorderLevel) lowTag = ' <span class="tag tag-low">Low</span>';
+    else if(p.stockQty<=p.reorderLevel*1.5) lowTag = ' <span class="tag tag-med">Watch</span>';
+    return `<tr>
+      <td>${escapeHtml(r.barcode||'-')}</td>
+      <td><b>${escapeHtml(p.name)}</b>${lowTag}</td>
+      <td>${r.opening}</td>
+      <td>${fmtMoney(r.costPrice)}</td>
+      <td>${fmtMoney(r.sellPrice)}</td>
+      <td>${r.soldToday}</td>
+      <td>${r.closing}</td>
+      <td>${r.received}</td>
+      <td>${fmtMoney(r.salesAmount)}</td>
+      <td><button class="btn btn-flat btn-sm" onclick="openProductModal(${p.id})" title="Edit this product's details">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})" title="Delete this product">🗑️</button></td>
+    </tr>`;
+  }
+
+  let html = '';
+  let grand = {opening:0, soldToday:0, closing:0, received:0, salesAmount:0};
+  DB.categories.forEach(catName=>{
+    const catProducts = matchingProducts.filter(p=>p.category===catName);
+    if(catProducts.length===0) return;
+    html += `<tr class="reg-cat-header"><td colspan="10">${escapeHtml(catName)}</td></tr>`;
+    let sub = {opening:0, soldToday:0, closing:0, received:0, salesAmount:0};
+    catProducts.forEach(p=>{
+      html += rowHtml(p);
+      const r = rowsById[p.name] || {opening:0, soldToday:0, closing:p.stockQty, received:0, salesAmount:0};
+      sub.opening+=r.opening; sub.soldToday+=r.soldToday; sub.closing+=r.closing; sub.received+=r.received; sub.salesAmount+=r.salesAmount;
+    });
+    html += `<tr class="reg-subtotal"><td colspan="2">Subtotal — ${escapeHtml(catName)}</td><td>${sub.opening}</td><td></td><td></td><td>${sub.soldToday}</td><td>${sub.closing}</td><td>${sub.received}</td><td>${fmtMoney(sub.salesAmount)}</td><td></td></tr>`;
+    grand.opening+=sub.opening; grand.soldToday+=sub.soldToday; grand.closing+=sub.closing; grand.received+=sub.received; grand.salesAmount+=sub.salesAmount;
+  });
+  const uncategorized = matchingProducts.filter(p=>!DB.categories.includes(p.category));
+  if(uncategorized.length){
+    html += `<tr class="reg-cat-header"><td colspan="10">Uncategorized</td></tr>`;
+    uncategorized.forEach(p=>{
+      html += rowHtml(p);
+      const r = rowsById[p.name] || {opening:0, soldToday:0, closing:p.stockQty, received:0, salesAmount:0};
+      grand.opening+=r.opening; grand.soldToday+=r.soldToday; grand.closing+=r.closing; grand.received+=r.received; grand.salesAmount+=r.salesAmount;
+    });
+  }
+  if(matchingProducts.length>0){
+    html += `<tr class="reg-grand-total"><td colspan="2">GRAND TOTAL</td><td>${grand.opening}</td><td></td><td></td><td>${grand.soldToday}</td><td>${grand.closing}</td><td>${grand.received}</td><td>${fmtMoney(grand.salesAmount)}</td><td></td></tr>`;
+  }
+  document.getElementById('stockBody').innerHTML = html || `<tr><td colspan="10" class="empty">No products match.</td></tr>`;
+}
+document.getElementById('stockSearch').addEventListener('input', renderStock);
+document.getElementById('stockCategoryFilter').addEventListener('change', renderStock);
+document.getElementById('stockRegDate').addEventListener('change', renderStock);
+
+function deleteProduct(id){
+  const p = getProduct(id);
+  if(!p) return;
+  if(!confirm(`Delete "${p.name}"? This cannot be undone. (Past sales/purchase records will be kept.)`)) return;
+  DB.products = DB.products.filter(x=>x.id!==id);
+  toast("Product deleted", "ok");
+  persist();
+}
+
+/* ============================= CATEGORY SELECT WITH "ADD NEW" ============================= */
+function categoryOptionsHtml(selected){
+  return DB.categories.map(c=>`<option value="${escapeHtml(c)}" ${c===selected?'selected':''}>${escapeHtml(c)}</option>`).join('')
+    + `<option value="__new__">➕ Add new category...</option>`;
+}
+function openNewCategoryModal(onCreated, onCancelled){
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>➕ Add New Category</h3>
+      <div class="field"><label>Category name (by size) *</label><input id="nc_name" placeholder="e.g. 60ml"></div>
+      <div class="modal-actions">
+        <button class="btn btn-flat" id="nc_cancel">Cancel</button>
+        <button class="btn btn-primary" id="nc_save">💾 Add Category</button>
+      </div>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(modal);
+  setTimeout(()=>{ const el=modal.querySelector('#nc_name'); if(el) el.focus(); }, 50);
+  modal.querySelector('#nc_cancel').onclick = ()=>{ modal.remove(); if(onCancelled) onCancelled(); };
+  modal.querySelector('#nc_name').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); modal.querySelector('#nc_save').click(); } });
+  modal.querySelector('#nc_save').onclick = ()=>{
+    const name = modal.querySelector('#nc_name').value.trim();
+    if(!name){ toast("Please enter a category name","err"); return; }
+    if(!DB.categories.includes(name)){
+      DB.categories.push(name);
+      saveToLocalStorage();
+      toast("Category added: "+name, "ok");
+    }
+    modal.remove();
+    if(onCreated) onCreated(name);
+  };
+}
+function handleCategorySelectChange(selectEl){
+  if(selectEl.value === '__new__'){
+    openNewCategoryModal(
+      (name)=>{ selectEl.innerHTML = categoryOptionsHtml(name); },
+      ()=>{ selectEl.value = DB.categories[0]||""; }
+    );
+  }
+}
+
+/* ============================= MODAL: PRODUCT ============================= */
+function openProductModal(id){
+  const editing = id!=null;
+  const p = editing ? getProduct(id) : {name:"",brand:"",category:DB.categories[0],barcode:"",costPrice:"",sellPrice:"",stockQty:0,reorderLevel:DB.settings.lowStockDefault,supplierId:""};
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>${editing?'✏️ Edit Product':'➕ Add New Product'}</h3>
+      <div class="field"><label>Product Name *</label><input id="f_name" value="${escapeHtml(p.name)}" placeholder="e.g. Old Monk 750ml"></div>
+      <div class="row2">
+        <div class="field"><label>Brand</label><input id="f_brand" value="${escapeHtml(p.brand)}"></div>
+        <div class="field"><label>Category (by size) *</label><select id="f_category">${categoryOptionsHtml(p.category)}</select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Barcode</label><input id="f_barcode" value="${escapeHtml(p.barcode)}" placeholder="scan or type"></div>
+        <div class="field"><label>Supplier</label><select id="f_supplier"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Cost Price (₹) *</label><input id="f_cost" type="number" min="0" step="0.01" value="${p.costPrice}"></div>
+        <div class="field"><label>Selling Price (₹) *</label><input id="f_sell" type="number" min="0" step="0.01" value="${p.sellPrice}"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Current Stock (bottles)</label><input id="f_stock" type="number" min="0" value="${p.stockQty}" ${editing?'disabled':''}></div>
+        <div class="field"><label>Reorder Alert Level</label><input id="f_reorder" type="number" min="0" value="${p.reorderLevel}"></div>
+      </div>
+      ${editing?'<p class="help">To change stock quantity, use Purchase (add stock), Sell, or Loss.</p>':''}
+      <div class="modal-actions">
+        <button class="btn btn-flat" id="f_cancel">Cancel</button>
+        <button class="btn btn-primary" id="f_save">💾 Save</button>
+      </div>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(modal);
+  populateSupplierSelect(modal.querySelector('#f_supplier'));
+  modal.querySelector('#f_supplier').value = p.supplierId||"";
+  modal.querySelector('#f_supplier').addEventListener('change', function(){ handleSupplierSelectChange(this); });
+  modal.querySelector('#f_category').addEventListener('change', function(){ handleCategorySelectChange(this); });
+  modal.querySelector('#f_cancel').onclick = ()=> modal.remove();
+  modal.querySelector('#f_barcode').addEventListener('keydown', e=>{ if(e.key==='Enter') e.preventDefault(); });
+  modal.querySelector('#f_save').onclick = ()=>{
+    const name = modal.querySelector('#f_name').value.trim();
+    const cost = parseFloat(modal.querySelector('#f_cost').value);
+    const sell = parseFloat(modal.querySelector('#f_sell').value);
+    if(!name){ toast("Please enter a product name","err"); return; }
+    if(isNaN(cost)||isNaN(sell)){ toast("Please enter valid prices","err"); return; }
+    const category = modal.querySelector('#f_category').value;
+    if(!editing){
+      const dup = DB.products.find(x=>x.name.trim().toLowerCase()===name.toLowerCase() && x.category===category);
+      if(dup){ toast(`"${dup.name}" already exists in ${category} — edit that product (or use Purchase) instead of adding a duplicate`,"err"); return; }
+    }
+    const data = {
+      name, brand: modal.querySelector('#f_brand').value.trim()||name,
+      category,
+      barcode: modal.querySelector('#f_barcode').value.trim(),
+      supplierId: modal.querySelector('#f_supplier').value,
+      costPrice: cost, sellPrice: sell,
+      reorderLevel: parseInt(modal.querySelector('#f_reorder').value)||0,
+    };
+    if(editing){
+      Object.assign(p, data);
+      toast("Product updated","ok");
+    } else {
+      const stockQty = parseInt(modal.querySelector('#f_stock').value)||0;
+      const np = addProductSilent({...data, stockQty});
+      if(stockQty>0) addLedgerEntry(np.id, np.name, "Opening Stock", stockQty, stockQty, "MANUAL", "Added when creating product");
+      toast("Product added","ok");
+    }
+    modal.remove();
+    persist();
+  };
+}
+document.getElementById('btnAddProduct').addEventListener('click', ()=>openProductModal(null));
+
+/* ============================= SUPPLIERS ============================= */
+function renderSuppliers(){
+  document.getElementById('suppliersEmpty').classList.toggle('hidden', DB.suppliers.length>0);
+  document.getElementById('suppliersBody').innerHTML = DB.suppliers.map(s=>`
+    <tr><td><b>${escapeHtml(s.name)}</b></td><td>${escapeHtml(s.phone||'-')}</td><td>${escapeHtml(s.address||'-')}</td><td>${escapeHtml(s.gst||'-')}</td>
+    <td><button class="btn btn-flat btn-sm" onclick="openSupplierModal(${s.id})" title="Edit this supplier's details">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSupplier(${s.id})" title="Delete this supplier">🗑️</button></td></tr>
+  `).join('');
+}
+function deleteSupplier(id){
+  if(!confirm("Delete this supplier?")) return;
+  DB.suppliers = DB.suppliers.filter(s=>s.id!==id);
+  toast("Supplier deleted","ok");
+  persist();
+}
+function openSupplierModal(id){
+  const editing = id!=null;
+  const s = editing? getSupplier(id) : {name:"",phone:"",address:"",gst:""};
+  const modal = document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>${editing?'✏️ Edit Supplier':'➕ Add Supplier'}</h3>
+      <div class="field"><label>Name *</label><input id="s_name" value="${escapeHtml(s.name)}"></div>
+      <div class="field"><label>Phone</label><input id="s_phone" value="${escapeHtml(s.phone)}"></div>
+      <div class="field"><label>Address</label><input id="s_address" value="${escapeHtml(s.address)}"></div>
+      <div class="field"><label>GST Number</label><input id="s_gst" value="${escapeHtml(s.gst)}"></div>
+      <div class="modal-actions">
+        <button class="btn btn-flat" id="s_cancel">Cancel</button>
+        <button class="btn btn-primary" id="s_save">💾 Save</button>
+      </div>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(modal);
+  modal.querySelector('#s_cancel').onclick=()=>modal.remove();
+  modal.querySelector('#s_save').onclick=()=>{
+    const name = modal.querySelector('#s_name').value.trim();
+    if(!name){ toast("Please enter a name","err"); return; }
+    if(!editing){
+      const dup = DB.suppliers.find(x=>x.name.trim().toLowerCase()===name.toLowerCase());
+      if(dup){ toast(`"${dup.name}" is already in your Suppliers list — edit that one instead`,"err"); return; }
+    }
+    const data = {name, phone:modal.querySelector('#s_phone').value.trim(), address:modal.querySelector('#s_address').value.trim(), gst:modal.querySelector('#s_gst').value.trim()};
+    if(editing){ Object.assign(s,data); toast("Supplier updated","ok"); }
+    else { addSupplierSilent(data.name,data.phone,data.address,data.gst); toast("Supplier added","ok"); }
+    modal.remove();
+    persist();
+  };
+}
+document.getElementById('btnAddSupplier').addEventListener('click', ()=>openSupplierModal(null));
+
+/* ============================= EXPENSES ============================= */
+function renderExpenses(){
+  document.getElementById('expensesEmpty').classList.toggle('hidden', DB.expenses.length>0);
+  const sorted = DB.expenses.slice().sort((a,b)=> new Date(b.date)-new Date(a.date));
+  document.getElementById('expensesBody').innerHTML = sorted.map(e=>`
+    <tr><td>${fmtDate(e.date)}</td><td><span class="tag tag-cat">${escapeHtml(e.category)}</span></td><td>${escapeHtml(e.description||'-')}</td><td>${fmtMoney(e.amount)}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteExpense(${e.id})" title="Delete this expense entry">🗑️</button></td></tr>
+  `).join('');
+}
+function deleteExpense(id){
+  if(!confirm("Delete this expense record?")) return;
+  DB.expenses = DB.expenses.filter(e=>e.id!==id);
+  toast("Expense deleted","ok");
+  persist();
+}
+function expenseCategoryOptionsHtml(selected){
+  if(!DB.expenseCategories || !DB.expenseCategories.length) DB.expenseCategories = DEFAULT_EXPENSE_CATEGORIES.slice();
+  return DB.expenseCategories.map(c=>`<option value="${escapeHtml(c)}" ${c===selected?'selected':''}>${escapeHtml(c)}</option>`).join('')
+    + `<option value="__new__">➕ Add new category...</option>`;
+}
+function openNewExpenseCategoryModal(onCreated, onCancelled){
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>➕ Add New Expense Category</h3>
+      <div class="field"><label>Category name *</label><input id="nec_name" placeholder="e.g. Internet Bill"></div>
+      <div class="modal-actions">
+        <button class="btn btn-flat" id="nec_cancel">Cancel</button>
+        <button class="btn btn-primary" id="nec_save">💾 Add Category</button>
+      </div>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(modal);
+  setTimeout(()=>{ const el=modal.querySelector('#nec_name'); if(el) el.focus(); }, 50);
+  modal.querySelector('#nec_cancel').onclick = ()=>{ modal.remove(); if(onCancelled) onCancelled(); };
+  modal.querySelector('#nec_name').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); modal.querySelector('#nec_save').click(); } });
+  modal.querySelector('#nec_save').onclick = ()=>{
+    const name = modal.querySelector('#nec_name').value.trim();
+    if(!name){ toast("Please enter a category name","err"); return; }
+    if(!DB.expenseCategories.includes(name)){
+      DB.expenseCategories.push(name);
+      saveToLocalStorage();
+      toast("Expense category added: "+name, "ok");
+    }
+    modal.remove();
+    if(onCreated) onCreated(name);
+  };
+}
+function handleExpenseCategorySelectChange(selectEl){
+  if(selectEl.value === '__new__'){
+    openNewExpenseCategoryModal(
+      (name)=>{ selectEl.innerHTML = expenseCategoryOptionsHtml(name); },
+      ()=>{ selectEl.value = (DB.expenseCategories&&DB.expenseCategories[0])||""; }
+    );
+  }
+}
+function openExpenseModal(){
+  const modal = document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>➕ Add Expense</h3>
+      <div class="field"><label>Date</label><input id="e_date" type="date" value="${todayStr()}"></div>
+      <div class="field"><label>Category</label><select id="e_category">${expenseCategoryOptionsHtml(null)}</select></div>
+      <div class="field"><label>Description</label><input id="e_desc" placeholder="optional note"></div>
+      <div class="field"><label>Amount (₹) *</label><input id="e_amount" type="number" min="0" step="0.01"></div>
+      <div class="modal-actions">
+        <button class="btn btn-flat" id="e_cancel">Cancel</button>
+        <button class="btn btn-primary" id="e_save">💾 Save</button>
+      </div>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(modal);
+  modal.querySelector('#e_category').addEventListener('change', function(){ handleExpenseCategorySelectChange(this); });
+  modal.querySelector('#e_cancel').onclick=()=>modal.remove();
+  modal.querySelector('#e_save').onclick=()=>{
+    const amount = parseFloat(modal.querySelector('#e_amount').value);
+    if(isNaN(amount)||amount<=0){ toast("Please enter a valid amount","err"); return; }
+    const category = modal.querySelector('#e_category').value;
+    if(category==='__new__'){ toast("Please finish adding the new category first","err"); return; }
+    DB.expenses.push({id: nextId('expense'), date: modal.querySelector('#e_date').value||todayStr(), category, description: modal.querySelector('#e_desc').value.trim(), amount});
+    toast("Expense added","ok");
+    modal.remove();
+    persist();
+  };
+}
+document.getElementById('btnAddExpense').addEventListener('click', openExpenseModal);
+
+/* ============================= PURCHASE: TALLY-STYLE GRID ============================= */
+// Each row: {productId (null until matched/created), productName, category, barcode, qty, rate, amount}
+let purchaseRows = [ blankPurchaseRow() ];
+function blankPurchaseRow(){ return {productId:null, productName:"", category:"", barcode:"", qty:"", rate:"", amount:""}; }
+function populateProductDatalist(){
+  document.getElementById('purchaseProductList').innerHTML = DB.products.map(p=>`<option value="${escapeHtml(p.name)}">`).join('');
+}
+function ensureTrailingBlankRow(){
+  const last = purchaseRows[purchaseRows.length-1];
+  if(last && last.productName.trim()!==""){ purchaseRows.push(blankPurchaseRow()); }
+}
+function recalcRow(row, changedField){
+  const q = parseFloat(row.qty), r = parseFloat(row.rate), a = parseFloat(row.amount);
+  if(changedField==='qty' || changedField==='rate'){
+    if(!isNaN(q) && !isNaN(r)) row.amount = Math.round(q*r*100)/100;
+  } else if(changedField==='amount'){
+    if(!isNaN(a) && !isNaN(q) && q>0) row.rate = Math.round((a/q)*100)/100;
+    else if(!isNaN(a) && !isNaN(r) && r>0) row.qty = Math.round(a/r);
+  }
+}
+function matchProductByName(name){
+  const n = name.trim().toLowerCase();
+  if(!n) return null;
+  return DB.products.find(p=>p.name.toLowerCase()===n) || null;
+}
+function onPurchaseProductChange(i, value){
+  const row = purchaseRows[i];
+  row.productName = value;
+  const match = matchProductByName(value);
+  if(match){
+    row.productId = match.id;
+    row.category = match.category;
+    row.barcode = match.barcode;
+    if(row.rate==="" || row.rate==null) row.rate = match.costPrice;
+    recalcRow(row, 'qty');
+    ensureTrailingBlankRow();
+    renderPurchaseGrid();
+  } else if(value.trim()!==""){
+    row.productId = null;
+    if(row._pendingQuickAdd === value.trim()) return; // avoid opening a duplicate modal on a repeated change event for the same value
+    row._pendingQuickAdd = value.trim();
+    openQuickAddFromPurchase(i, value.trim());
+  } else {
+    row.productId = null; row.category=""; renderPurchaseGrid();
+  }
+}
+function openQuickAddFromPurchase(i, name){
+  const modal = document.createElement('div');
+  modal.className='modal-bg';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>➕ New Product: ${escapeHtml(name)}</h3>
+      <p class="help">Not in your Stock list yet — set its category once and it'll be created automatically.</p>
+      <div class="field"><label>Category (by size) *</label><select id="qa_category">${categoryOptionsHtml(DB.categories[0])}</select></div>
+      <div class="field"><label>Selling Price (₹) — you can fine-tune this later in Stock</label><input id="qa_sell" type="number" min="0" step="0.01"></div>
+      <div class="modal-actions">
+        <button class="btn btn-flat" id="qa_cancel">Cancel (remove line)</button>
+        <button class="btn btn-primary" id="qa_save">💾 Create Product</button>
+      </div>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(modal);
+  modal.querySelector('#qa_category').addEventListener('change', function(){ handleCategorySelectChange(this); });
+  modal.querySelector('#qa_cancel').onclick = ()=>{ purchaseRows[i].productName=""; purchaseRows[i]._pendingQuickAdd=null; modal.remove(); renderPurchaseGrid(); };
+  modal.querySelector('#qa_save').onclick = ()=>{
+    const category = modal.querySelector('#qa_category').value;
+    const row = purchaseRows[i];
+    const rate = parseFloat(row.rate)||0;
+    const sell = parseFloat(modal.querySelector('#qa_sell').value) || Math.round(rate*1.25);
+    const dup = DB.products.find(x=>x.name.trim().toLowerCase()===name.trim().toLowerCase() && x.category===category);
+    let np;
+    if(dup){
+      np = dup;
+      toast(`"${dup.name}" already exists in ${category} — using that product instead of creating a duplicate`, "ok");
+    } else {
+      np = addProductSilent({name, brand:name, category, barcode: row.barcode||"", costPrice: rate, sellPrice: sell, stockQty:0, reorderLevel: DB.settings.lowStockDefault});
+      toast("Product created: "+name, "ok");
+    }
+    row.productId = np.id; row.category = category; row._pendingQuickAdd = null;
+    saveToLocalStorage();
+    populateProductDatalist();
+    ensureTrailingBlankRow();
+    modal.remove();
+    renderPurchaseGrid();
+  };
+}
+function renderPurchaseGrid(){
+  const body = document.getElementById('purchaseGridBody');
+  body.innerHTML = purchaseRows.map((row,i)=>`
+    <tr>
+      <td><input id="purchaseRowName_${i}" list="purchaseProductList" value="${escapeHtml(row.productName)}" style="width:100%;min-width:150px;padding:8px;border-radius:8px;border:1px solid var(--border);" onchange="onPurchaseProductChange(${i}, this.value)"></td>
+      <td>${row.category?('<span class="tag tag-cat">'+escapeHtml(row.category)+'</span>'):'<span style="color:var(--muted);font-size:0.8rem;">—</span>'}</td>
+      <td><input type="number" min="0" value="${row.qty}" style="width:70px;padding:8px;border-radius:8px;border:1px solid var(--border);" onchange="purchaseRows[${i}].qty=this.value; recalcRow(purchaseRows[${i}],'qty'); renderPurchaseGrid();"></td>
+      <td><input type="number" min="0" step="0.01" value="${row.rate}" style="width:90px;padding:8px;border-radius:8px;border:1px solid var(--border);" onchange="purchaseRows[${i}].rate=this.value; recalcRow(purchaseRows[${i}],'rate'); renderPurchaseGrid();"></td>
+      <td><input type="number" min="0" step="0.01" value="${row.amount}" style="width:100px;padding:8px;border-radius:8px;border:1px solid var(--border);" onchange="purchaseRows[${i}].amount=this.value; recalcRow(purchaseRows[${i}],'amount'); renderPurchaseGrid();"></td>
+      <td>${purchaseRows.length>1?`<button class="btn btn-danger btn-sm" onclick="purchaseRows.splice(${i},1); if(purchaseRows.length===0) purchaseRows.push(blankPurchaseRow()); renderPurchaseGrid();" title="Remove this line from the voucher">🗑️</button>`:''}</td>
+    </tr>
+  `).join('');
+  const totalQty = purchaseRows.reduce((a,r)=>a+(parseFloat(r.qty)||0),0);
+  const totalAmount = purchaseRows.reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
+  document.getElementById('purchaseTotalItems').textContent = totalQty;
+  document.getElementById('purchaseTotalCost').textContent = fmtMoney(totalAmount);
+  // Whether this purchase is fully paid or on credit is decided ONLY by the explicit
+  // "Credit purchase" toggle below — never by a default left in a numeric field — so a
+  // purchase can never silently register as "settled" just because nobody touched a box.
+  if(!document.getElementById('purchaseCreditToggle').checked){
+    document.getElementById('purchaseAmountPaid').value = totalAmount.toFixed(2);
+  }
+}
+document.getElementById('purchaseCreditToggle').addEventListener('change', function(){
+  const wrap = document.getElementById('purchaseAmountPaidWrap');
+  const input = document.getElementById('purchaseAmountPaid');
+  wrap.style.display = this.checked ? '' : 'none';
+  if(this.checked){
+    // Force the shopkeeper to actively state how much was paid — default to 0 (fully on
+    // credit) rather than pre-filling the total, which is exactly what caused purchases
+    // to silently show as "settled" before.
+    input.value = '0';
+    input.focus();
+  } else {
+    const totalAmount = purchaseRows.reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
+    input.value = totalAmount.toFixed(2);
+  }
+});
+document.getElementById('btnNewProductOnPurchase').addEventListener('click', ()=>{
+  const blank = purchaseRows.find(r=>r.productName.trim()==="");
+  const target = blank || blankPurchaseRow();
+  if(!blank) purchaseRows.push(target);
+  ensureTrailingBlankRow();
+  renderPurchaseGrid();
+  focusPurchaseRowByPredicate(r=>r===target);
+});
+function focusPurchaseRowByPredicate(pred){
+  const idx = purchaseRows.findIndex(pred);
+  if(idx===-1) return;
+  setTimeout(()=>{ const el = document.getElementById('purchaseRowName_'+idx); if(el) el.focus(); }, 60);
+}
+// Scanning a barcode that isn't in Stock yet creates a new blank purchase line pre-filled
+// with that barcode and puts the cursor in the Product Name box, so a brand-new product
+// gets created right here on the Purchase sheet (no need to visit Stock first).
+// Best-effort free web lookup for a barcode's product name (no API key needed).
+// Coverage for Indian liquor/spirits barcodes is patchy on public open databases — this is a
+// convenience that fills in the name when it happens to be listed, and silently does nothing
+// (no error shown) when it isn't, so it never gets in the way of typing the name manually.
+async function lookupBarcodeNameOnWeb(code){
+  try{
+    const res = await fetch("https://world.openfoodfacts.org/api/v2/product/"+encodeURIComponent(code)+".json?fields=product_name,brands");
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(data && data.status===1 && data.product){
+      const name = (data.product.product_name || "").trim();
+      const brand = (data.product.brands || "").trim();
+      if(name) return brand && !name.toLowerCase().includes(brand.toLowerCase()) ? (brand+" "+name) : name;
+    }
+  }catch(e){ /* offline, blocked, or not found — fail silently, manual entry still works */ }
+  return null;
+}
+function addUnknownBarcodeToPurchase(code){
+  showScreen('purchase');
+  const existing = purchaseRows.find(r=>r.barcode===code);
+  if(existing){ focusPurchaseRowByPredicate(r=>r.barcode===code); return; }
+  const blank = purchaseRows.find(r=>r.productName.trim()==="" && !r.barcode);
+  const target = blank || blankPurchaseRow();
+  target.barcode = code;
+  if(!blank) purchaseRows.push(target);
+  ensureTrailingBlankRow();
+  renderPurchaseGrid();
+  focusPurchaseRowByPredicate(r=>r===target);
+  toast("New barcode scanned — searching the web for its name...", "ok");
+  lookupBarcodeNameOnWeb(code).then(name=>{
+    // Only auto-fill if the shopkeeper hasn't already typed something in the meantime.
+    if(name && target.productName.trim()===""){
+      const idx = purchaseRows.indexOf(target);
+      if(idx!==-1){
+        const input = document.getElementById('purchaseRowName_'+idx);
+        if(input){ input.value = name; }
+        onPurchaseProductChange(idx, name);
+        toast("Found a name from the web: "+name+" — check it before saving.", "ok");
+      }
+    }
+  });
+}
+document.getElementById('purchaseScanInput').addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const code = this.value.trim();
+  this.value = "";
+  if(!code) return;
+  const p = getProductByBarcode(code);
+  if(!p){ addUnknownBarcodeToPurchase(code); return; }
+  const existingRow = purchaseRows.find(r=>r.productId===p.id);
+  if(existingRow){
+    existingRow.qty = (parseFloat(existingRow.qty)||0) + 1;
+    recalcRow(existingRow, 'qty');
+  } else {
+    const blank = purchaseRows.find(r=>r.productName.trim()==="");
+    const target = blank || blankPurchaseRow();
+    target.productId = p.id; target.productName = p.name; target.category = p.category; target.barcode = p.barcode;
+    target.qty = 1; target.rate = p.costPrice; target.amount = Math.round(p.costPrice*100)/100;
+    if(!blank) purchaseRows.push(target);
+    ensureTrailingBlankRow();
+  }
+  renderPurchaseGrid();
+  this.focus();
+});
+document.getElementById('btnCompletePurchase').addEventListener('click', ()=>{
+  const validRows = purchaseRows.filter(r=>r.productId && (parseFloat(r.qty)||0)>0);
+  if(validRows.length===0){ toast("Add at least one product with a quantity","err"); return; }
+  const supplierId = document.getElementById('purchaseSupplier').value;
+  const supplier = getSupplier(supplierId);
+  const invoiceNo = document.getElementById('purchaseInvoiceNo').value.trim() || ("PUR-"+String(nextId('invoicePurchase')).padStart(4,'0'));
+  const dateInput = document.getElementById('purchaseDate').value;
+  const date = dateInput ? new Date(dateInput+"T"+new Date().toTimeString().slice(0,8)).toISOString() : new Date().toISOString();
+  const totalCost = validRows.reduce((a,r)=>a+(parseFloat(r.amount)||0),0);
+  const isCreditPurchase = document.getElementById('purchaseCreditToggle').checked;
+  let amountPaid;
+  if(!isCreditPurchase){
+    amountPaid = totalCost; // fully paid — the only way to record a due balance is to tick "Credit purchase"
+  } else {
+    amountPaid = parseFloat(document.getElementById('purchaseAmountPaid').value);
+    if(isNaN(amountPaid)) amountPaid = 0;
+  }
+  amountPaid = Math.max(0, Math.min(amountPaid, totalCost));
+  const payRatio = totalCost>0 ? amountPaid/totalCost : 1;
+  validRows.forEach(r=>{
+    const p = getProduct(r.productId);
+    if(!p) return;
+    const qty = Math.round(parseFloat(r.qty));
+    const rate = parseFloat(r.rate) || (parseFloat(r.amount)/qty) || p.costPrice;
+    const total = parseFloat(r.amount) || (qty*rate);
+    p.stockQty += qty;
+    p.costPrice = rate;
+    DB.purchases.push({id: nextId('purchase'), date, invoiceNo, supplierId: supplierId||"", supplierName: supplier?supplier.name:"(none)", productId:p.id, productName:p.name, qty, costPrice:rate, total, amountPaid: Math.round(total*payRatio*100)/100});
+    addLedgerEntry(p.id, p.name, "Purchase", qty, p.stockQty, invoiceNo, "Purchase from "+(supplier?supplier.name:"unspecified supplier"));
+  });
+  purchaseRows = [blankPurchaseRow()];
+  document.getElementById('purchaseInvoiceNo').value = "";
+  document.getElementById('purchaseCreditToggle').checked = false;
+  document.getElementById('purchaseAmountPaidWrap').style.display = 'none';
+  toast(amountPaid<totalCost ? "Purchase saved — stock updated (partly on credit)!" : "Purchase saved — stock updated!","ok");
+  persist();
+  renderPurchaseGrid();
+});
+function renderPurchaseHistory(){
+  const grouped = {};
+  DB.purchases.forEach(p=>{
+    const key = p.invoiceNo+"|"+p.date;
+    if(!grouped[key]) grouped[key] = {date:p.date, invoiceNo:p.invoiceNo, supplierName:p.supplierName, items:0, total:0, paid:0};
+    grouped[key].items += p.qty;
+    grouped[key].total += p.total;
+    grouped[key].paid += (p.amountPaid!=null? p.amountPaid : p.total);
+  });
+  const rows = Object.values(grouped).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('purchaseHistoryBody').innerHTML = rows.map(r=>{
+    const due = r.total - r.paid;
+    return `<tr><td>${fmtDate(r.date)}</td><td>${escapeHtml(r.invoiceNo)}</td><td>${escapeHtml(r.supplierName)}</td><td>${r.items}</td><td>${fmtMoney(r.total)}</td><td>${due>0.5?('<span class="tag tag-low">'+fmtMoney(due)+'</span>'):'—'}</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">No purchases recorded yet.</td></tr>`;
+}
+
+/* ============================= INSTANT SELL (no cart, no confirm button) ============================= */
+let lastSaleIds = []; // ids of DB.sales rows created by the most recent commit, for Undo
+document.getElementById('saleCreditToggle').addEventListener('change', function(){
+  document.getElementById('saleCustomerWrap').style.display = this.checked ? '' : 'none';
+});
+function commitInstantSale(p, qty){
+  if(!p) return false;
+  qty = Math.max(1, parseInt(qty)||1);
+  if(p.stockQty<=0){ toast(p.name+" is out of stock!","err"); return false; }
+  if(qty > p.stockQty){ toast("Only "+p.stockQty+" in stock for "+p.name+" — selling "+p.stockQty,"err"); qty = p.stockQty; }
+  const isCredit = document.getElementById('saleCreditToggle').checked;
+  const customerName = document.getElementById('saleCustomerName').value.trim();
+  if(isCredit && !customerName){ toast("Enter the customer's name for a credit sale","err"); return false; }
+  const paymentMode = isCredit ? "Credit" : "Paid";
+  const invoiceNo = "SALE-"+String(nextId('invoiceSale')).padStart(4,'0');
+  const date = new Date().toISOString();
+  const total = qty * p.sellPrice;
+  const amountPaid = isCredit ? 0 : total;
+  p.stockQty -= qty;
+  const saleId = nextId('sale');
+  DB.sales.push({id:saleId, date, invoiceNo, paymentMode, customerName, productId:p.id, productName:p.name, qty, sellPrice:p.sellPrice, costPriceAtSale:p.costPrice, total, amountPaid});
+  addLedgerEntry(p.id, p.name, "Sale", -qty, p.stockQty, invoiceNo, "Sold"+(isCredit?" (Credit: "+customerName+")":""));
+  lastSaleIds = [saleId];
+  document.getElementById('lastSaleText').textContent = `✅ Sold: ${p.name} × ${qty} = ${fmtMoney(total)}${isCredit?' (Credit — '+customerName+')':''}`;
+  document.getElementById('lastSaleBanner').classList.remove('hidden');
+  toast("Sale recorded: "+p.name+" × "+qty, "ok");
+  persist();
+  return true;
+}
+document.getElementById('saleProductPicker').addEventListener('change', function(){
+  const id = this.value; if(!id) return;
+  const qty = parseInt(document.getElementById('scanQty').value)||1;
+  commitInstantSale(getProduct(id), qty);
+  this.value="";
+  document.getElementById('scanQty').value = 1;
+});
+const scanInputEl = document.getElementById('scanInput');
+scanInputEl.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter') return;
+  e.preventDefault();
+  const code = this.value.trim();
+  this.value = "";
+  if(!code) return;
+  const p = getProductByBarcode(code);
+  if(p){
+    const qty = parseInt(document.getElementById('scanQty').value)||1;
+    commitInstantSale(p, qty);
+    document.getElementById('scanQty').value = 1;
+  }
+  else {
+    toast("New barcode — taking you to Purchase to add this product.", "err");
+    addUnknownBarcodeToPurchase(code);
+    return;
+  }
+  this.focus();
+});
+document.getElementById('btnUndoLastSale').addEventListener('click', ()=>{
+  if(!lastSaleIds.length) return;
+  lastSaleIds.forEach(id=>{
+    const idx = DB.sales.findIndex(s=>s.id===id);
+    if(idx===-1) return;
+    const s = DB.sales[idx];
+    const p = getProduct(s.productId);
+    if(p) p.stockQty += s.qty;
+    DB.sales.splice(idx,1);
+    DB.stockLedger = DB.stockLedger.filter(l=>!(l.reference===s.invoiceNo && l.productId===s.productId && l.type==='Sale'));
+  });
+  lastSaleIds = [];
+  document.getElementById('lastSaleBanner').classList.add('hidden');
+  toast("Last sale undone","ok");
+  persist();
+});
+function renderSaleHistory(){
+  const today = todayStr();
+  const map = {};
+  DB.sales.filter(s=>s.date.slice(0,10)===today).forEach(s=>{
+    if(!map[s.productId]) map[s.productId] = {name:s.productName, category:(getProduct(s.productId)||{}).category||'', qty:0, revenue:0, last:s.date};
+    map[s.productId].qty += s.qty;
+    map[s.productId].revenue += s.total;
+    if(s.date > map[s.productId].last) map[s.productId].last = s.date;
+  });
+  const rows = Object.values(map).sort((a,b)=>new Date(b.last)-new Date(a.last));
+  document.getElementById('saleHistoryBody').innerHTML = rows.map(r=>`
+    <tr><td>${escapeHtml(r.name)}</td><td><span class="tag tag-cat">${escapeHtml(r.category)}</span></td><td>${r.qty}</td><td>${fmtMoney(r.revenue)}</td></tr>
+  `).join('') || `<tr><td colspan="4" class="empty">No sales yet today.</td></tr>`;
+}
+
+/* ============================= LOSS / BREAKAGE ============================= */
+document.getElementById('btnSaveLoss').addEventListener('click', ()=>{
+  const productId = document.getElementById('lossProduct').value;
+  const qty = parseInt(document.getElementById('lossQty').value)||0;
+  const reason = document.getElementById('lossReason').value;
+  const notes = document.getElementById('lossNotes').value.trim();
+  const p = getProduct(productId);
+  if(!p){ toast("Please select a product","err"); return; }
+  if(qty<=0){ toast("Enter a valid quantity","err"); return; }
+  if(qty>p.stockQty){ toast("Cannot lose more than current stock ("+p.stockQty+")","err"); return; }
+  p.stockQty -= qty;
+  addLedgerEntry(p.id, p.name, "Loss: "+reason, -qty, p.stockQty, "LOSS", notes);
+  toast("Loss recorded — stock updated","ok");
+  document.getElementById('lossQty').value = 1;
+  document.getElementById('lossNotes').value = "";
+  persist();
+});
+function renderLossHistory(){
+  const rows = DB.stockLedger.filter(l=>l.type.startsWith('Loss')).sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,100);
+  document.getElementById('lossHistoryBody').innerHTML = rows.map(r=>{
+    const p = getProduct(r.productId);
+    const value = Math.abs(r.qtyChange) * (p?p.costPrice:0);
+    return `<tr><td>${fmtDate(r.date)}</td><td>${escapeHtml(r.productName)}</td><td>${escapeHtml(r.type.replace('Loss: ',''))}</td><td>${Math.abs(r.qtyChange)}</td><td>${fmtMoney(value)}</td><td style="color:var(--muted);font-size:0.85rem;">${escapeHtml(r.notes||'')}</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty">No losses recorded. 🎉</td></tr>`;
+}
+
+/* ============================= REPORTS ============================= */
+document.querySelectorAll('#screen-reports > .pill-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#screen-reports > .pill-tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.report-panel').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('report-'+btn.dataset.report).classList.remove('hidden');
+  });
+});
+document.querySelectorAll('[data-plquick]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-plquick]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const d = new Date();
+    let from, to;
+    if(btn.dataset.plquick==='today'){ from = to = todayStr(); }
+    else if(btn.dataset.plquick==='yesterday'){ const y=new Date(d); y.setDate(y.getDate()-1); from = to = y.toISOString().slice(0,10); }
+    else if(btn.dataset.plquick==='week'){ const day=d.getDay(); const monday=new Date(d); monday.setDate(d.getDate()-((day+6)%7)); from = monday.toISOString().slice(0,10); to = todayStr(); }
+    else if(btn.dataset.plquick==='month'){ from = new Date(d.getFullYear(), d.getMonth(),1).toISOString().slice(0,10); to = todayStr(); }
+    else if(btn.dataset.plquick==='year'){ from = getFY(d).start.toISOString().slice(0,10); to = todayStr(); }
+    document.getElementById('plFrom').value = from;
+    document.getElementById('plTo').value = to;
+    runPL();
+  });
+});
+function runAllReports(){
+  if(!document.getElementById('plFrom').value){
+    const d = new Date(); const firstOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+    document.getElementById('plFrom').value = firstOfMonth.toISOString().slice(0,10);
+    document.getElementById('plTo').value = todayStr();
+  }
+  runPL();
+  renderDailySalesByCategory();
+  renderLedgerReport();
+  renderTopSellers();
+  renderLowStockReport();
+  renderLeakageReport();
+}
+document.getElementById('btnRunPL').addEventListener('click', runPL);
+/* Reconstruct total stock value (at current cost prices) as of the END of a given yyyy-mm-dd date,
+   by walking back ledger entries that happened AFTER that date. Approximate: uses each product's
+   CURRENT cost price rather than the true historical cost at that date. */
+function stockValueAsOf(cutoffDateStr){
+  let total = 0;
+  DB.products.forEach(p=>{
+    const futureDelta = DB.stockLedger
+      .filter(l=>l.productId===p.id && l.date.slice(0,10) > cutoffDateStr)
+      .reduce((a,l)=>a+l.qtyChange,0);
+    const qtyAtCutoff = p.stockQty - futureDelta;
+    total += Math.max(0,qtyAtCutoff) * p.costPrice;
+  });
+  return total;
+}
+/* Exact quantity of one product as of the end of a given yyyy-mm-dd date, reconstructed from the ledger
+   (so it already reflects any loss/breakage/theft recorded on or before that date). */
+function stockQtyAsOf(productId, cutoffDateStr){
+  const p = getProduct(productId);
+  if(!p) return 0;
+  const futureDelta = DB.stockLedger
+    .filter(l=>l.productId===productId && l.date.slice(0,10) > cutoffDateStr)
+    .reduce((a,l)=>a+l.qtyChange,0);
+  return p.stockQty - futureDelta;
+}
+function buildStockRegisterRows(dateStr){
+  const dayBefore = new Date(new Date(dateStr).getTime()-86400000).toISOString().slice(0,10);
+  return DB.products.map(p=>{
+    const opening = stockQtyAsOf(p.id, dayBefore);
+    const closing = stockQtyAsOf(p.id, dateStr);
+    const soldToday = DB.sales.filter(s=>s.productId===p.id && s.date.slice(0,10)===dateStr).reduce((a,s)=>a+s.qty,0);
+    const salesAmount = DB.sales.filter(s=>s.productId===p.id && s.date.slice(0,10)===dateStr).reduce((a,s)=>a+s.total,0);
+    const received = DB.purchases.filter(pu=>pu.productId===p.id && pu.date.slice(0,10)===dateStr).reduce((a,pu)=>a+pu.qty,0);
+    return { barcode:p.barcode, name:p.name, category:p.category, opening, costPrice:p.costPrice, sellPrice:p.sellPrice, soldToday, closing, received, salesAmount };
+  });
+}
+function tSideHtml(title, rows, total){
+  return `<div class="t-side"><div class="t-head"><span>${title}</span><span>₹</span></div>
+    <table><tbody>
+      ${rows.map(r=>`<tr><td>${r.label}</td><td class="amt-col">${fmtMoney(r.value)}</td></tr>`).join('')}
+      <tr class="total-row"><td>Total</td><td class="amt-col">${fmtMoney(total)}</td></tr>
+    </tbody></table></div>`;
+}
+function runPL(){
+  const from = document.getElementById('plFrom').value;
+  const to = document.getElementById('plTo').value;
+  const inRange = (d)=> (!from || d.slice(0,10)>=from) && (!to || d.slice(0,10)<=to);
+  const salesInRange = DB.sales.filter(s=>inRange(s.date));
+  const purchasesInRange = DB.purchases.filter(p=>inRange(p.date));
+  const expensesInRange = DB.expenses.filter(e=>inRange(e.date));
+  const revenue = salesInRange.reduce((a,s)=>a+s.total,0);
+  const purchaseTotal = purchasesInRange.reduce((a,p)=>a+p.total,0);
+  const dayBeforeFrom = from ? new Date(new Date(from).getTime()-86400000).toISOString().slice(0,10) : '1970-01-01';
+  const openingStock = stockValueAsOf(dayBeforeFrom);
+  const closingStock = to ? stockValueAsOf(to) : stockValueAsOf(todayStr());
+  const grossProfit = (revenue + closingStock) - (openingStock + purchaseTotal);
+  const totalExpenses = expensesInRange.reduce((a,e)=>a+e.amount,0);
+  const netProfit = grossProfit - totalExpenses;
+
+  document.getElementById('plSummaryCard').innerHTML = `
+    <div class="card ${netProfit>=0?'good':'bad'}"><div class="label">🏆 ${netProfit>=0?'Net Profit':'Net Loss'}</div><div class="value">${fmtMoney(Math.abs(netProfit))}</div><div class="sub">for the selected period</div></div>
+    <div class="card ${grossProfit>=0?'good':'bad'}"><div class="label">📈 Gross Profit</div><div class="value">${fmtMoney(grossProfit)}</div></div>
+    <div class="card"><div class="label">💰 Sales Revenue</div><div class="value">${fmtMoney(revenue)}</div></div>
+  `;
+
+  // Trading Account (T-shape)
+  const trDr = [ {label:'To Opening Stock', value: openingStock}, {label:'To Purchases', value: purchaseTotal} ];
+  const trCr = [ {label:'By Sales', value: revenue}, {label:'By Closing Stock', value: closingStock} ];
+  let trDrTotal, trCrTotal;
+  if(grossProfit >= 0){ trDr.push({label:'To Gross Profit c/d', value: grossProfit}); trDrTotal = openingStock+purchaseTotal+grossProfit; trCrTotal = revenue+closingStock; }
+  else { trCr.push({label:'By Gross Loss c/d', value: -grossProfit}); trDrTotal = openingStock+purchaseTotal; trCrTotal = revenue+closingStock-grossProfit; }
+
+  // Profit & Loss Account (T-shape)
+  const expenseRows = Object.values(expensesInRange.reduce((acc,e)=>{ acc[e.category]=acc[e.category]||{label:'To '+e.category, value:0}; acc[e.category].value+=e.amount; return acc; },{}));
+  const plDr = expenseRows.slice();
+  const plCr = [ {label:'By Gross Profit b/d', value: Math.max(0,grossProfit)} ];
+  if(grossProfit<0) plDr.unshift({label:'To Gross Loss b/d', value:-grossProfit});
+  let plDrTotal, plCrTotal;
+  if(netProfit>=0){ plDr.push({label:'To Net Profit c/d', value:netProfit}); plDrTotal = plDr.reduce((a,r)=>a+r.value,0); plCrTotal = plCr.reduce((a,r)=>a+r.value,0); }
+  else { plCr.push({label:'By Net Loss c/d', value:-netProfit}); plDrTotal = plDr.reduce((a,r)=>a+r.value,0); plCrTotal = plCr.reduce((a,r)=>a+r.value,0); }
+
+  document.getElementById('plTAccounts').innerHTML = `
+    <div class="t-account"><h3>📒 Trading Account</h3>
+      <div class="t-wrap">${tSideHtml('Dr.', trDr, trDrTotal)}${tSideHtml('Cr.', trCr, trCrTotal)}</div>
+    </div>
+    <div class="t-account"><h3>📗 Profit &amp; Loss Account</h3>
+      <div class="t-wrap">${tSideHtml('Dr.', plDr.length?plDr:[{label:'(no expenses)',value:0}], plDrTotal)}${tSideHtml('Cr.', plCr, plCrTotal)}</div>
+    </div>
+  `;
+}
+function renderDailySalesByCategory(){
+  const dateInput = document.getElementById('dailyCatDate');
+  if(!dateInput.value) dateInput.value = todayStr();
+  const date = dateInput.value;
+  const map = {};
+  DB.categories.forEach(c=> map[c] = {qty:0, revenue:0});
+  DB.sales.filter(s=>s.date.slice(0,10)===date).forEach(s=>{
+    const p = getProduct(s.productId);
+    const cat = p ? p.category : 'Unknown';
+    if(!map[cat]) map[cat] = {qty:0, revenue:0};
+    map[cat].qty += s.qty;
+    map[cat].revenue += s.total;
+  });
+  const rows = Object.entries(map).filter(([,v])=>v.qty>0).sort((a,b)=>b[1].revenue-a[1].revenue);
+  document.getElementById('dailyCatBody').innerHTML = rows.map(([cat,v])=>`
+    <tr><td><span class="tag tag-cat">${escapeHtml(cat)}</span></td><td>${v.qty}</td><td>${fmtMoney(v.revenue)}</td></tr>
+  `).join('') || `<tr><td colspan="3" class="empty">No sales on this date.</td></tr>`;
+}
+document.getElementById('dailyCatDate').addEventListener('change', renderDailySalesByCategory);
+function renderLedgerReport(){
+  const rows = DB.stockLedger.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,300);
+  document.getElementById('ledgerBody').innerHTML = rows.map(r=>`
+    <tr><td>${fmtDate(r.date)}</td><td>${escapeHtml(r.productName)}</td><td><span class="tag tag-cat">${escapeHtml(r.type)}</span></td>
+    <td style="color:${r.qtyChange<0?'var(--red)':'var(--green)'};font-weight:700;">${r.qtyChange>0?'+':''}${r.qtyChange}</td>
+    <td>${r.balanceAfter}</td><td style="color:var(--muted);font-size:0.85rem;">${escapeHtml(r.notes||'')}</td></tr>
+  `).join('') || `<tr><td colspan="6" class="empty">No stock movements yet.</td></tr>`;
+}
+function renderTopSellers(){
+  const map = {};
+  DB.sales.forEach(s=>{
+    if(!map[s.productId]) map[s.productId] = {name:s.productName, qty:0, revenue:0};
+    map[s.productId].qty += s.qty;
+    map[s.productId].revenue += s.total;
+  });
+  const rows = Object.values(map).sort((a,b)=>b.qty-a.qty).slice(0,20);
+  document.getElementById('topSellersBody').innerHTML = rows.map((r,i)=>`
+    <tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${r.qty}</td><td>${fmtMoney(r.revenue)}</td></tr>
+  `).join('') || `<tr><td colspan="4" class="empty">No sales yet.</td></tr>`;
+}
+function renderLowStockReport(){
+  const low = DB.products.filter(p=>p.stockQty<=p.reorderLevel).sort((a,b)=>a.stockQty-b.stockQty);
+  document.getElementById('lowStockReportBody').innerHTML = low.map(p=>`
+    <tr><td>${escapeHtml(p.name)}</td><td><span class="tag tag-low">${p.stockQty}</span></td><td>${p.reorderLevel}</td></tr>
+  `).join('') || `<tr><td colspan="3" class="empty">✅ No low stock items.</td></tr>`;
+}
+function renderLeakageReport(){
+  const losses = DB.stockLedger.filter(l=>l.type.startsWith('Loss'));
+  const totalQty = losses.reduce((a,l)=>a+Math.abs(l.qtyChange),0);
+  let totalValue = 0;
+  const byReason = {}, byProduct = {};
+  losses.forEach(l=>{
+    const p = getProduct(l.productId);
+    const cost = p?p.costPrice:0;
+    const val = Math.abs(l.qtyChange)*cost;
+    totalValue += val;
+    const reason = l.type.replace('Loss: ','');
+    byReason[reason] = byReason[reason] || {qty:0, value:0};
+    byReason[reason].qty += Math.abs(l.qtyChange);
+    byReason[reason].value += val;
+    byProduct[l.productName] = byProduct[l.productName] || {qty:0, value:0};
+    byProduct[l.productName].qty += Math.abs(l.qtyChange);
+    byProduct[l.productName].value += val;
+  });
+  document.getElementById('leakageCards').innerHTML = `
+    <div class="card bad"><div class="label">⚠️ Total Bottles Lost</div><div class="value">${totalQty}</div></div>
+    <div class="card bad"><div class="label">💸 Estimated Value Lost</div><div class="value">${fmtMoney(totalValue)}</div></div>
+  `;
+  document.getElementById('leakageByReasonBody').innerHTML = Object.entries(byReason).sort((a,b)=>b[1].value-a[1].value).map(([reason,v])=>`
+    <tr><td>${escapeHtml(reason)}</td><td>${v.qty}</td><td>${fmtMoney(v.value)}</td></tr>
+  `).join('') || `<tr><td colspan="3" class="empty">No losses recorded.</td></tr>`;
+  document.getElementById('leakageByProductBody').innerHTML = Object.entries(byProduct).sort((a,b)=>b[1].value-a[1].value).map(([name,v])=>`
+    <tr><td>${escapeHtml(name)}</td><td>${v.qty}</td><td>${fmtMoney(v.value)}</td></tr>
+  `).join('') || `<tr><td colspan="3" class="empty">No losses recorded.</td></tr>`;
+}
+
+/* ============================= ACCOUNTS: CREDITORS / DEBTORS / BALANCE SHEET ============================= */
+document.querySelectorAll('#screen-accounts > .pill-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#screen-accounts > .pill-tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.acc-panel').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('acc-'+btn.dataset.acc).classList.remove('hidden');
+  });
+});
+function computeCreditors(){
+  const map = {};
+  DB.purchases.forEach(p=>{
+    const key = p.supplierName||"(none)";
+    map[key] = map[key] || {total:0, paid:0};
+    map[key].total += p.total;
+    map[key].paid += (p.amountPaid!=null?p.amountPaid:p.total);
+  });
+  DB.payments.filter(pay=>pay.type==='SupplierPayment').forEach(pay=>{
+    map[pay.partyName] = map[pay.partyName] || {total:0, paid:0};
+    map[pay.partyName].paid += pay.amount;
+  });
+  return map;
+}
+function computeDebtors(){
+  const map = {};
+  DB.sales.forEach(s=>{
+    const key = s.customerName && s.customerName.trim() ? s.customerName.trim() : null;
+    if(!key) return; // walk-in customers without a name are excluded from debtor tracking
+    map[key] = map[key] || {total:0, paid:0};
+    map[key].total += s.total;
+    map[key].paid += (s.amountPaid!=null?s.amountPaid:s.total);
+  });
+  DB.payments.filter(pay=>pay.type==='CustomerPayment').forEach(pay=>{
+    map[pay.partyName] = map[pay.partyName] || {total:0, paid:0};
+    map[pay.partyName].paid += pay.amount;
+  });
+  return map;
+}
+function renderAccounts(){
+  const creditors = computeCreditors();
+  document.getElementById('creditorsBody').innerHTML = Object.entries(creditors).map(([name,v])=>{
+    const due = v.total-v.paid;
+    return `<tr><td>${escapeHtml(name)}</td><td>${fmtMoney(v.total)}</td><td>${fmtMoney(v.paid)}</td><td>${due>0.5?('<span class="tag tag-low">'+fmtMoney(due)+'</span>'):'<span class="tag tag-ok">Settled</span>'}</td>
+    <td>${due>0.5?`<button class="btn btn-flat btn-sm" onclick="openSettleModal('SupplierPayment','${escapeHtml(name).replace(/'/g,"\\'")}',${due.toFixed(2)})">💵 Settle</button>`:''}</td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">No supplier purchases yet.</td></tr>`;
+
+  const debtors = computeDebtors();
+  document.getElementById('debtorsBody').innerHTML = Object.entries(debtors).map(([name,v])=>{
+    const due = v.total-v.paid;
+    return `<tr><td>${escapeHtml(name)}</td><td>${fmtMoney(v.total)}</td><td>${fmtMoney(v.paid)}</td><td>${due>0.5?('<span class="tag tag-low">'+fmtMoney(due)+'</span>'):'<span class="tag tag-ok">Settled</span>'}</td>
+    <td>${due>0.5?`<button class="btn btn-flat btn-sm" onclick="openSettleModal('CustomerPayment','${escapeHtml(name).replace(/'/g,"\\'")}',${due.toFixed(2)})">💵 Settle</button>`:''}</td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">No named credit customers yet.</td></tr>`;
+
+  renderExpenses();
+  renderBalanceSheet();
+}
+function openSettleModal(type, partyName, maxDue){
+  const modal = document.createElement('div');
+  modal.className='modal-bg';
+  const label = type==='SupplierPayment' ? 'Pay Supplier' : 'Receive from Customer';
+  modal.innerHTML = `
+    <div class="modal">
+      <h3>💵 ${label}: ${escapeHtml(partyName)}</h3>
+      <div class="field"><label>Amount (₹) — due is ${fmtMoney(maxDue)}</label><input id="pay_amount" type="number" min="0" step="0.01" max="${maxDue}" value="${maxDue}"></div>
+      <div class="field"><label>Note (optional)</label><input id="pay_note"></div>
+      <div class="modal-actions">
+        <button class="btn btn-flat" id="pay_cancel">Cancel</button>
+        <button class="btn btn-primary" id="pay_save">💾 Save</button>
+      </div>
+    </div>`;
+  document.getElementById('modalRoot').appendChild(modal);
+  modal.querySelector('#pay_cancel').onclick=()=>modal.remove();
+  modal.querySelector('#pay_save').onclick=()=>{
+    const amount = parseFloat(modal.querySelector('#pay_amount').value);
+    if(isNaN(amount)||amount<=0){ toast("Enter a valid amount","err"); return; }
+    DB.payments.push({id: nextId('payment'), date: new Date().toISOString(), type, partyName, amount, notes: modal.querySelector('#pay_note').value.trim()});
+    toast("Payment recorded","ok");
+    modal.remove();
+    persist();
+    renderAccounts();
+  };
+}
+document.getElementById('btnSaveCashBank').addEventListener('click', ()=>{
+  DB.settings.cashInHand = parseFloat(document.getElementById('setCashInHand').value)||0;
+  DB.settings.bankBalance = parseFloat(document.getElementById('setBankBalance').value)||0;
+  toast("Saved","ok");
+  persist();
+});
+function renderBalanceSheet(){
+  document.getElementById('setCashInHand').value = DB.settings.cashInHand||0;
+  document.getElementById('setBankBalance').value = DB.settings.bankBalance||0;
+  const stockValue = DB.products.reduce((a,p)=>a+p.stockQty*p.costPrice,0);
+  const creditors = computeCreditors(); const debtors = computeDebtors();
+  const totalReceivable = Object.values(debtors).reduce((a,v)=>a+Math.max(0,v.total-v.paid),0);
+  const totalPayable = Object.values(creditors).reduce((a,v)=>a+Math.max(0,v.total-v.paid),0);
+  const cash = DB.settings.cashInHand||0, bank = DB.settings.bankBalance||0;
+  const totalAssets = stockValue + totalReceivable + cash + bank;
+  document.getElementById('balanceAssetsBody').innerHTML = `
+    <tr><td>Stock in Hand (at cost)</td><td style="text-align:right;">${fmtMoney(stockValue)}</td></tr>
+    <tr><td>Receivables (Debtors)</td><td style="text-align:right;">${fmtMoney(totalReceivable)}</td></tr>
+    <tr><td>Cash in Hand</td><td style="text-align:right;">${fmtMoney(cash)}</td></tr>
+    <tr><td>Bank Balance</td><td style="text-align:right;">${fmtMoney(bank)}</td></tr>
+    <tr><td><b>Total Assets</b></td><td style="text-align:right;"><b>${fmtMoney(totalAssets)}</b></td></tr>
+  `;
+  document.getElementById('balanceLiabilitiesBody').innerHTML = `
+    <tr><td>Payables (Creditors)</td><td style="text-align:right;">${fmtMoney(totalPayable)}</td></tr>
+    <tr><td><b>Total Liabilities</b></td><td style="text-align:right;"><b>${fmtMoney(totalPayable)}</b></td></tr>
+  `;
+  const netWorth = totalAssets - totalPayable;
+  document.getElementById('balanceSummaryCards').innerHTML = `
+    <div class="card ${netWorth>=0?'good':'bad'}"><div class="label">🏦 Net Position (Assets − Liabilities)</div><div class="value">${fmtMoney(netWorth)}</div><div class="sub">Approximate owner's equity</div></div>
+  `;
+}
+
+/* ============================= TRENDS / CHARTS ============================= */
+let trendMode = 'daily';
+document.querySelectorAll('#screen-trends .pill-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('#screen-trends .pill-tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    trendMode = btn.dataset.trend;
+    renderTrends();
+  });
+});
+function dayKey(d){ return new Date(d).toISOString().slice(0,10); }
+function monthKey(d){ return new Date(d).toISOString().slice(0,7); }
+function yearKey(d){ return String(new Date(d).getFullYear()); }
+function sumRevCost(sales){
+  return sales.reduce((acc,s)=>{ acc.rev += s.total; acc.cost += s.qty*(s.costPriceAtSale||0); return acc; }, {rev:0, cost:0});
+}
+function renderCompareCards(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const fmtRange = (fromOffsetDays, toOffsetDays)=>{
+    const from = new Date(today); from.setDate(from.getDate()-fromOffsetDays);
+    const to = new Date(today); to.setDate(to.getDate()-toOffsetDays);
+    return DB.sales.filter(s=>{ const d=new Date(s.date); d.setHours(0,0,0,0); return d>=from && d<=to; });
+  };
+  const todaySales = fmtRange(0,0);
+  const yestSales = fmtRange(1,1);
+  const thisWeek = fmtRange(6,0);
+  const lastWeek = fmtRange(13,7);
+  const thisMonthStart = new Date(today.getFullYear(), today.getMonth(),1);
+  const daysIntoMonth = Math.floor((today-thisMonthStart)/86400000);
+  const thisMonth = fmtRange(daysIntoMonth,0);
+  const lastMonthSameSpan = fmtRange(daysIntoMonth+ (new Date(today.getFullYear(),today.getMonth(),0).getDate()), (new Date(today.getFullYear(),today.getMonth(),0).getDate()));
+  function card(label, curSales, prevSales){
+    const cur = curSales.reduce((a,s)=>a+s.total,0);
+    const prev = prevSales.reduce((a,s)=>a+s.total,0);
+    let trendHtml = '';
+    if(prev>0){
+      const pct = ((cur-prev)/prev*100);
+      trendHtml = `<div class="trend ${pct>=0?'up':'down'}">${pct>=0?'▲':'▼'} ${Math.abs(pct).toFixed(1)}%</div>`;
+    } else if(cur>0){ trendHtml = `<div class="trend up">▲ new</div>`; }
+    return `<div class="card"><div class="label">${label}</div><div class="value">${fmtMoney(cur)}</div>${trendHtml}<div class="sub">vs ${fmtMoney(prev)}</div></div>`;
+  }
+  document.getElementById('compareCards').innerHTML =
+    card("Today vs Yesterday", todaySales, yestSales) +
+    card("This Week vs Last Week", thisWeek, lastWeek) +
+    card("This Month vs Last Month (same days)", thisMonth, lastMonthSameSpan);
+}
+function buildSeries(mode){
+  const labels = []; const rev = []; const cost = [];
+  const now = new Date();
+  if(mode==='daily'){
+    for(let i=29;i>=0;i--){
+      const d = new Date(now); d.setDate(d.getDate()-i);
+      const key = dayKey(d);
+      const sales = DB.sales.filter(s=>dayKey(s.date)===key);
+      const {rev:r,cost:c} = sumRevCost(sales);
+      labels.push(d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}));
+      rev.push(r); cost.push(r-c);
+    }
+  } else if(mode==='monthly'){
+    for(let i=11;i>=0;i--){
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      const key = monthKey(d);
+      const sales = DB.sales.filter(s=>monthKey(s.date)===key);
+      const {rev:r,cost:c} = sumRevCost(sales);
+      labels.push(d.toLocaleDateString('en-IN',{month:'short',year:'2-digit'}));
+      rev.push(r); cost.push(r-c);
+    }
+  } else {
+    const fyStartYears = new Set(DB.sales.map(s=>getFY(s.date).startYear));
+    fyStartYears.add(getFY(now).startYear);
+    const sorted = Array.from(fyStartYears).sort((a,b)=>a-b);
+    sorted.forEach(sy=>{
+      const sales = DB.sales.filter(s=>getFY(s.date).startYear===sy);
+      const {rev:r,cost:c} = sumRevCost(sales);
+      labels.push('FY '+sy+'-'+String((sy+1)%100).padStart(2,'0'));
+      rev.push(r); cost.push(r-c);
+    });
+  }
+  return {labels, revenue:rev, profit:cost};
+}
+function svgLineChart(labels, seriesList, width, height){
+  const padL=54, padR=16, padT=16, padB=34;
+  const innerW = width-padL-padR, innerH = height-padT-padB;
+  const allVals = seriesList.flatMap(s=>s.data).concat([0]);
+  const maxV = Math.max(...allVals, 1);
+  const minV = Math.min(...allVals, 0);
+  const range = (maxV-minV)||1;
+  const n = labels.length;
+  const xStep = n>1 ? innerW/(n-1) : 0;
+  function xOf(i){ return padL + i*xStep; }
+  function yOf(v){ return padT + innerH - ((v-minV)/range)*innerH; }
+  let svg = `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" style="min-width:${Math.max(width,n*36)}px;">`;
+  // gridlines
+  const gridCount = 4;
+  for(let g=0; g<=gridCount; g++){
+    const v = minV + (range*g/gridCount);
+    const y = yOf(v);
+    svg += `<line x1="${padL}" y1="${y}" x2="${width-padR}" y2="${y}" stroke="#e6dcd0" stroke-width="1"/>`;
+    svg += `<text x="${padL-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#6b615c">${Math.round(v)}</text>`;
+  }
+  // x labels (subset to avoid crowding)
+  const labelEvery = Math.ceil(n/8)||1;
+  labels.forEach((lab,i)=>{
+    if(i%labelEvery===0 || i===n-1){
+      svg += `<text x="${xOf(i)}" y="${height-10}" text-anchor="middle" font-size="10" fill="#6b615c">${lab}</text>`;
+    }
+  });
+  // series lines
+  seriesList.forEach(s=>{
+    const pts = s.data.map((v,i)=>`${xOf(i)},${yOf(v)}`).join(' ');
+    svg += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2.5"/>`;
+    s.data.forEach((v,i)=>{
+      svg += `<circle cx="${xOf(i)}" cy="${yOf(v)}" r="3.2" fill="${s.color}"><title>${labels[i]}: ${DB.settings.currency}${Math.round(v).toLocaleString('en-IN')}</title></circle>`;
+    });
+  });
+  svg += `</svg>`;
+  return svg;
+}
+function renderTrends(){
+  renderCompareCards();
+  const {labels, revenue, profit} = buildSeries(trendMode);
+  document.getElementById('trendChart').innerHTML = svgLineChart(labels, [
+    {data:revenue, color:'#7b1e3a'},
+    {data:profit, color:'#1f8a4c'},
+  ], 760, 260);
+  // find biggest drop in revenue between consecutive points
+  let worstDrop = 0, worstIdx = -1;
+  for(let i=1;i<revenue.length;i++){
+    if(revenue[i-1]>0){
+      const pct = (revenue[i]-revenue[i-1])/revenue[i-1]*100;
+      if(pct < worstDrop){ worstDrop = pct; worstIdx = i; }
+    }
+  }
+  const noteEl = document.getElementById('dropNoteText');
+  if(worstIdx>=0 && worstDrop <= -15){
+    noteEl.innerHTML = `📉 Biggest drop: sales fell <b style="color:var(--red);">${worstDrop.toFixed(0)}%</b> at <b>${labels[worstIdx]}</b> compared to the period before it.`;
+  } else {
+    noteEl.textContent = "No sharp drops detected in this period.";
+  }
+}
+
+/* ============================= SETTINGS: CATEGORIES ============================= */
+function renderCategoryChips(){
+  document.getElementById('categoryChips').innerHTML = DB.categories.map(c=>{
+    const inUse = DB.products.some(p=>p.category===c);
+    return `<span class="chip">${escapeHtml(c)} ${inUse?'':`<button onclick="removeCategory('${escapeHtml(c).replace(/'/g,"\\'")}')" title="Remove">×</button>`}</span>`;
+  }).join('');
+}
+function removeCategory(c){
+  if(DB.products.some(p=>p.category===c)){ toast("Cannot remove — some products use this category","err"); return; }
+  DB.categories = DB.categories.filter(x=>x!==c);
+  toast("Category removed","ok");
+  persist();
+}
+document.getElementById('btnAddCategory').addEventListener('click', ()=>{
+  const inp = document.getElementById('newCategoryInput');
+  const name = inp.value.trim();
+  if(!name){ toast("Enter a category name","err"); return; }
+  if(DB.categories.includes(name)){ toast("Category already exists","err"); return; }
+  DB.categories.push(name);
+  inp.value = "";
+  toast("Category added","ok");
+  persist();
+});
+function renderExpenseCategoryChips(){
+  if(!DB.expenseCategories || !DB.expenseCategories.length) DB.expenseCategories = DEFAULT_EXPENSE_CATEGORIES.slice();
+  document.getElementById('expenseCategoryChips').innerHTML = DB.expenseCategories.map(c=>{
+    const inUse = DB.expenses.some(e=>e.category===c);
+    return `<span class="chip">${escapeHtml(c)} ${inUse?'':`<button onclick="removeExpenseCategory('${escapeHtml(c).replace(/'/g,"\\'")}')" title="Remove">×</button>`}</span>`;
+  }).join('');
+}
+function removeExpenseCategory(c){
+  if(DB.expenses.some(e=>e.category===c)){ toast("Cannot remove — some expenses use this category","err"); return; }
+  DB.expenseCategories = DB.expenseCategories.filter(x=>x!==c);
+  toast("Expense category removed","ok");
+  persist();
+}
+document.getElementById('btnAddExpenseCategory').addEventListener('click', ()=>{
+  const inp = document.getElementById('newExpenseCategoryInput');
+  const name = inp.value.trim();
+  if(!name){ toast("Enter a category name","err"); return; }
+  if(DB.expenseCategories.includes(name)){ toast("Category already exists","err"); return; }
+  DB.expenseCategories.push(name);
+  inp.value = "";
+  toast("Expense category added","ok");
+  persist();
+});
+
+/* ============================= SETTINGS: SHOP / GENERAL ============================= */
+function renderSettings(){
+  document.getElementById('setShopName').value = DB.settings.shopName;
+  document.getElementById('setCurrency').value = DB.settings.currency;
+  document.getElementById('setLowStockDefault').value = DB.settings.lowStockDefault;
+  document.getElementById('setTgToken').value = DB.settings.telegramBotToken||"";
+  document.getElementById('setTgChatId').value = DB.settings.telegramChatId||"";
+  document.getElementById('setTgEnabled').checked = !!DB.settings.telegramEnabled;
+  document.getElementById('setGdriveClientId').value = DB.settings.gdriveClientId||"";
+  document.getElementById('setGdriveEnabled').checked = !!DB.settings.gdriveEnabled;
+  document.getElementById('setAppPin').value = DB.settings.appPin||"";
+  document.getElementById('setFirebaseConfig').value = DB.settings.firebaseConfigJson||"";
+  if(DB.settings.syncEnabled){
+    document.getElementById('btnFirebaseSignOut').classList.remove('hidden');
+    document.getElementById('btnFirebaseDisable').classList.remove('hidden');
+    setFirebaseStatus(fbAuth && fbAuth.currentUser ? ("Signed in as "+fbAuth.currentUser.email+" — live sync is on.") : "Live sync is on — sign in to connect.");
+  } else {
+    setFirebaseStatus("Live sync is off — each device keeps its own local copy.");
+  }
+  updateGDrivePill((gdriveAccessToken && Date.now()<gdriveTokenExpiry) ? 'on' : (DB.settings.gdriveClientId ? 'reconnect' : 'off'));
+  renderCategoryChips();
+  renderExpenseCategoryChips();
+  renderExcelStatus();
+}
+document.getElementById('btnSaveSettings').addEventListener('click', ()=>{
+  DB.settings.shopName = document.getElementById('setShopName').value.trim() || "My Wine Shop";
+  DB.settings.currency = document.getElementById('setCurrency').value.trim() || "₹";
+  DB.settings.lowStockDefault = parseInt(document.getElementById('setLowStockDefault').value)||6;
+  toast("Settings saved","ok");
+  persist();
+});
+document.getElementById('btnSaveAppPin').addEventListener('click', ()=>{
+  const newPin = document.getElementById('setAppPin').value.trim();
+  DB.settings.appPin = newPin;
+  sessionStorage.removeItem('wsmUnlocked'); // re-lock this tab so the new PIN takes effect immediately
+  toast(newPin ? "PIN saved — the app will ask for it on next load" : "PIN removed — app link is now open to anyone with it","ok");
+  persist();
+});
+
+/* ============================= TELEGRAM BOT ============================= */
+document.getElementById('btnSaveTelegram').addEventListener('click', ()=>{
+  DB.settings.telegramBotToken = document.getElementById('setTgToken').value.trim();
+  DB.settings.telegramChatId = document.getElementById('setTgChatId').value.trim();
+  DB.settings.telegramEnabled = document.getElementById('setTgEnabled').checked;
+  toast("Telegram settings saved","ok");
+  persist();
+});
+function buildSummaryMessage(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const inSpan = (offsetFrom, offsetTo)=>{
+    const from = new Date(today); from.setDate(from.getDate()-offsetFrom);
+    const to = new Date(today); to.setDate(to.getDate()-offsetTo);
+    return DB.sales.filter(s=>{ const d=new Date(s.date); d.setHours(0,0,0,0); return d>=from && d<=to; });
+  };
+  const todaySales = inSpan(0,0), yestSales = inSpan(1,1);
+  const weekSales = inSpan(6,0), lastWeekSales = inSpan(13,7);
+  const monthStart = new Date(today.getFullYear(), today.getMonth(),1);
+  const daysIntoMonth = Math.floor((today-monthStart)/86400000);
+  const monthSales = inSpan(daysIntoMonth,0);
+  const sum = arr=>arr.reduce((a,s)=>a+s.total,0);
+  const todayTotal = sum(todaySales), yestTotal = sum(yestSales), weekTotal = sum(weekSales), lastWeekTotal = sum(lastWeekSales), monthTotal = sum(monthSales);
+  const pct = (cur,prev)=> prev>0 ? (((cur-prev)/prev)*100).toFixed(0)+'%' : 'N/A';
+  const todayCogs = todaySales.reduce((a,s)=>a+s.qty*(s.costPriceAtSale||0),0);
+  const todayProfit = todayTotal - todayCogs;
+  const topMap = {};
+  todaySales.forEach(s=>{ topMap[s.productName]=(topMap[s.productName]||0)+s.qty; });
+  const topList = Object.entries(topMap).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,q])=>`  • ${n} — ${q} sold`).join('\n') || '  • No sales yet today';
+  const lowStock = DB.products.filter(p=>p.stockQty<=p.reorderLevel);
+  const cur = DB.settings.currency;
+  const dateStr = new Date().toLocaleDateString('en-IN',{weekday:'long', day:'numeric', month:'long'});
+  const timeStr = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  return `🍷 *${DB.settings.shopName}* — Business Update
+📅 ${dateStr}, ${timeStr}
+
+*Today's Sales:* ${cur}${todayTotal.toLocaleString('en-IN')}
+*Today's Profit (est.):* ${cur}${todayProfit.toLocaleString('en-IN')}
+
+📊 *Comparison:*
+  vs Yesterday (${cur}${yestTotal.toLocaleString('en-IN')}): ${pct(todayTotal,yestTotal)}
+  This week so far (${cur}${weekTotal.toLocaleString('en-IN')}) vs last week (${cur}${lastWeekTotal.toLocaleString('en-IN')}): ${pct(weekTotal,lastWeekTotal)}
+  This month so far: ${cur}${monthTotal.toLocaleString('en-IN')}
+
+🏆 *Top sellers today:*
+${topList}
+
+⚠️ *Low stock items:* ${lowStock.length}${lowStock.length?(' — '+lowStock.slice(0,5).map(p=>p.name).join(', ')):''}
+
+_Automated summary from Wine Shop Manager_`;
+}
+// Telegram Chat ID field accepts multiple recipients — one per line or comma-separated
+// (each must be a Chat ID, not a phone number: Telegram bots can only message someone who
+// has already started a chat with the bot, or a group the bot has been added to — a bot can
+// never message a phone number directly, by Telegram's own design). Every send loops over
+// all configured recipients so the whole shop/family can get the same summary and backup.
+function getTelegramChatIds(){
+  return String(DB.settings.telegramChatId||"").split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
+}
+async function sendTelegramMessage(text){
+  if(DEMO_MODE) return false; // disabled in demo
+  const token = DB.settings.telegramBotToken;
+  const chatIds = getTelegramChatIds();
+  if(!token || !chatIds.length){ toast("Please set your Telegram bot token and at least one Chat ID in Settings first","err"); return false; }
+  let okCount = 0, lastError = "";
+  for(const chatId of chatIds){
+    try{
+      const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({chat_id: chatId, text, parse_mode:'Markdown'})
+      });
+      const data = await resp.json();
+      if(data.ok) okCount++; else lastError = data.description||"unknown error";
+    }catch(e){ console.error(e); lastError = "network error"; }
+  }
+  if(okCount===chatIds.length){ toast("Telegram summary sent to "+okCount+(okCount>1?" recipients!":"!"),"ok"); return true; }
+  else if(okCount>0){ toast("Sent to "+okCount+"/"+chatIds.length+" — one or more failed: "+lastError,"err"); return true; }
+  else { toast("Telegram error: "+lastError,"err"); return false; }
+}
+async function sendTelegramDocument(caption){
+  if(DEMO_MODE) return false; // disabled in demo
+  const token = DB.settings.telegramBotToken;
+  const chatIds = getTelegramChatIds();
+  if(!token || !chatIds.length){ toast("Please set your Telegram bot token and at least one Chat ID in Settings first","err"); return false; }
+  try{
+    const wb = buildWorkbook();
+    const bytes = XLSX.write(wb, {type:'array', bookType:'xlsx'});
+    const fname = (DB.settings.shopName||"WineShop").replace(/[^a-z0-9]+/gi,'_') + "_" + todayStr() + ".xlsx";
+    let okCount = 0, lastError = "";
+    for(const chatId of chatIds){
+      try{
+        const blob = new Blob([bytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        const form = new FormData();
+        form.append('chat_id', chatId);
+        form.append('caption', caption||('Backup — '+fmtDate(new Date())));
+        form.append('document', blob, fname);
+        const resp = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method:'POST', body: form });
+        const data = await resp.json();
+        if(data.ok) okCount++; else lastError = data.description||"unknown error";
+      }catch(e){ console.error(e); lastError = "network error"; }
+    }
+    if(okCount===chatIds.length){ toast("Excel backup sent to "+okCount+(okCount>1?" recipients!":"!"),"ok"); return true; }
+    else if(okCount>0){ toast("Backup sent to "+okCount+"/"+chatIds.length+" — one or more failed: "+lastError,"err"); return true; }
+    else { toast("Telegram backup error: "+lastError,"err"); return false; }
+  }catch(e){
+    console.error(e);
+    toast("Could not send backup to Telegram. Check your internet connection.","err");
+    return false;
+  }
+}
+document.getElementById('btnSendTelegramNow').addEventListener('click', async ()=>{
+  document.getElementById('tgStatusLine').textContent = "Sending...";
+  const ok = await sendTelegramMessage(buildSummaryMessage());
+  document.getElementById('tgStatusLine').textContent = ok ? "✅ Sent just now." : "❌ Failed to send — see message above.";
+});
+document.getElementById('btnBackupNow').addEventListener('click', async ()=>{
+  document.getElementById('tgStatusLine').textContent = "Uploading backup...";
+  const ok = await sendTelegramDocument("📁 Manual backup — "+fmtDate(new Date()));
+  document.getElementById('tgStatusLine').textContent = ok ? "✅ Backup sent just now." : "❌ Backup failed — see message above.";
+});
+function checkTelegramSchedule(){
+  if(DEMO_MODE) return false; // disabled in demo
+  if(!DB.settings.telegramEnabled) return;
+  const now = new Date();
+  const hh = now.getHours(), mm = now.getMinutes();
+  const dateStr = todayStr();
+  if(hh===14 && mm===0 && DB.settings.lastTgSend2pm !== dateStr){
+    DB.settings.lastTgSend2pm = dateStr;
+    saveToLocalStorage();
+    sendTelegramMessage(buildSummaryMessage());
+  }
+  if(hh===21 && mm===0 && DB.settings.lastTgSend9pm !== dateStr){
+    DB.settings.lastTgSend9pm = dateStr;
+    saveToLocalStorage();
+    sendTelegramMessage(buildSummaryMessage());
+    sendTelegramDocument("📁 End-of-day Excel backup — "+fmtDate(new Date()));
+  }
+}
+setInterval(checkTelegramSchedule, 30000);
+
+/* ============================= GOOGLE DRIVE BACKUP (automatic, via Google Identity Services) ============================= */
+// Uses Google's browser-only OAuth ("Google Identity Services" token client) with the narrow
+// drive.file scope, so this app can only ever see/write the one backup file it creates itself —
+// never the rest of the shop owner's Drive. The access token lives only in memory (never saved
+// to localStorage or the Excel file) and must be renewed each time the page is freshly loaded;
+// only the Client ID and the backup file's id are remembered.
+let gdriveAccessToken = null;
+let gdriveTokenExpiry = 0;
+let gdriveTokenClient = null;
+let gdriveTokenResolvers = [];
+let gdriveBackupTimer = null;
+function updateGDrivePill(state){
+  const el = document.getElementById('gdriveStatusLine');
+  if(!el) return;
+  if(state==='on') el.innerHTML = '🟢 Connected — backups go to your Google Drive automatically.';
+  else if(state==='reconnect') el.innerHTML = '🟠 Needs reconnecting — tap "Connect Google Drive" again.';
+  else el.innerHTML = 'Not connected yet.';
+}
+function setupGDriveTokenClient(){
+  if(typeof google==='undefined' || !google.accounts || !google.accounts.oauth2) return; // GIS script not loaded yet
+  if(!DB.settings.gdriveClientId) return;
+  gdriveTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: DB.settings.gdriveClientId,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: (resp)=>{
+      if(resp && resp.access_token){
+        gdriveAccessToken = resp.access_token;
+        gdriveTokenExpiry = Date.now() + ((resp.expires_in||3500)*1000);
+        updateGDrivePill('on');
+      } else {
+        updateGDrivePill('reconnect');
+      }
+      const resolvers = gdriveTokenResolvers; gdriveTokenResolvers = [];
+      resolvers.forEach(fn=>fn(!!(resp && resp.access_token)));
+    },
+    error_callback: ()=>{
+      updateGDrivePill('reconnect');
+      const resolvers = gdriveTokenResolvers; gdriveTokenResolvers = [];
+      resolvers.forEach(fn=>fn(false));
+    }
+  });
+}
+function requestGDriveToken(promptMode){
+  return new Promise(resolve=>{
+    if(!gdriveTokenClient){ resolve(false); return; }
+    gdriveTokenResolvers.push(resolve);
+    gdriveTokenClient.requestAccessToken({prompt: promptMode});
+  });
+}
+async function ensureGDriveToken(){
+  if(DEMO_MODE) return false; // disabled in demo
+  if(gdriveAccessToken && Date.now() < gdriveTokenExpiry - 60000) return true;
+  if(!gdriveTokenClient) setupGDriveTokenClient();
+  if(!gdriveTokenClient) return false;
+  return await requestGDriveToken(''); // silent renewal — falls back to "reconnect" if the browser needs a fresh click
+}
+document.getElementById('btnSaveGdriveSettings').addEventListener('click', ()=>{
+  DB.settings.gdriveClientId = document.getElementById('setGdriveClientId').value.trim();
+  DB.settings.gdriveEnabled = document.getElementById('setGdriveEnabled').checked;
+  toast("Google Drive settings saved","ok");
+  persist();
+  setupGDriveTokenClient();
+});
+document.getElementById('btnConnectGdrive').addEventListener('click', async ()=>{
+  const cid = document.getElementById('setGdriveClientId').value.trim();
+  if(!cid){ toast("Paste your Google OAuth Client ID first, then Save","err"); return; }
+  if(cid !== DB.settings.gdriveClientId){ DB.settings.gdriveClientId = cid; saveToLocalStorage(); }
+  setupGDriveTokenClient();
+  if(!gdriveTokenClient){ toast("Google's sign-in library hasn't loaded yet — check your internet connection and try again in a moment.","err"); return; }
+  const ok = await requestGDriveToken('consent');
+  if(ok){ toast("Google Drive connected!","ok"); backupToGoogleDrive(true); }
+  else { toast("Could not connect to Google Drive.","err"); }
+});
+document.getElementById('btnGdriveBackupNow').addEventListener('click', ()=> backupToGoogleDrive(true));
+function scheduleGDriveBackup(){
+  if(DEMO_MODE) return false; // disabled in demo
+  if(!DB.settings.gdriveEnabled || !DB.settings.gdriveClientId) return;
+  clearTimeout(gdriveBackupTimer);
+  // Debounced rather than instant: a busy till can trigger a persist() on every single scan, and
+  // uploading the whole workbook to Drive on every one of those would be slow, wasteful, and prone
+  // to hitting rate limits — so it waits for a short quiet moment after the last change instead.
+  gdriveBackupTimer = setTimeout(()=>backupToGoogleDrive(false), 20000);
+}
+async function backupToGoogleDrive(manual){
+  if(!DB.settings.gdriveClientId){ if(manual) toast("Set up Google Drive above first","err"); return; }
+  const ok = await ensureGDriveToken();
+  if(!ok){
+    updateGDrivePill('reconnect');
+    if(manual) toast("Google Drive needs to be reconnected — tap \"Connect Google Drive\" again.","err");
+    return;
+  }
+  try{
+    const wb = buildWorkbook();
+    const bytes = XLSX.write(wb, {type:'array', bookType:'xlsx'});
+    const blob = new Blob([bytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const fname = (DB.settings.shopName||"wine_shop").replace(/[^a-z0-9]+/gi,'_') + ".xlsx";
+    let res;
+    if(DB.settings.gdriveFileId){
+      res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${DB.settings.gdriveFileId}?uploadType=media`, {
+        method:'PATCH', headers:{Authorization:'Bearer '+gdriveAccessToken, 'Content-Type': blob.type}, body: blob
+      });
+      if(res.status===404){ // the file was deleted/moved on the Drive side — recreate it once
+        DB.settings.gdriveFileId = ""; saveToLocalStorage();
+        return backupToGoogleDrive(manual);
+      }
+    } else {
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify({name:fname, mimeType: blob.type})], {type:'application/json'}));
+      form.append('file', blob);
+      res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method:'POST', headers:{Authorization:'Bearer '+gdriveAccessToken}, body: form
+      });
+    }
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    if(data && data.id && !DB.settings.gdriveFileId){ DB.settings.gdriveFileId = data.id; saveToLocalStorage(); }
+    document.getElementById('gdriveStatusLine').innerHTML = '🟢 Backed up to Drive ✓ '+ new Date().toLocaleTimeString();
+    if(manual) toast("Backed up to Google Drive!","ok");
+  }catch(e){
+    console.error("Google Drive backup failed", e);
+    document.getElementById('gdriveStatusLine').innerHTML = '🟠 Drive backup failed — will retry after the next change.';
+    if(manual) toast("Google Drive backup failed — check your internet connection.","err");
+  }
+}
+async function tryAutoConnectGDrive(){
+  if(DEMO_MODE) return false; // disabled in demo
+  if(!DB.settings.gdriveClientId){ updateGDrivePill('off'); return; }
+  setupGDriveTokenClient();
+  if(!gdriveTokenClient){ updateGDrivePill('off'); return; }
+  const ok = await requestGDriveToken('');
+  updateGDrivePill(ok ? 'on' : 'reconnect');
+}
+
+/* ============================= DAY-ROLLOVER AUTO-REFRESH ============================= */
+// "Today's Sales" (stat strip, Stock Register's Sold Today/Opening/Closing columns, Recent Sales)
+// are all computed from todayStr() at render time. If the app is left open across midnight,
+// nothing re-renders on its own, so yesterday's figures would keep showing under "today".
+// This watches the clock and re-renders automatically the moment the date changes.
+let __currentAppDay = todayStr();
+function checkDayRollover(){
+  const nowDay = todayStr();
+  if(nowDay !== __currentAppDay){
+    __currentAppDay = nowDay;
+    renderAll();
+    if(document.getElementById('screen-reports').classList.contains('active')) runAllReports();
+    if(document.getElementById('screen-trends').classList.contains('active')) renderTrends();
+    if(document.getElementById('screen-accounts').classList.contains('active')) renderAccounts();
+  }
+}
+setInterval(checkDayRollover, 30000);
+
+/* ============================= EXCEL: FILE SYSTEM ACCESS (AUTO-SAVE) ============================= */
+let fsFileHandle = null;
+const FS_SUPPORTED = 'showSaveFilePicker' in window;
+const IDB_NAME = 'wineShopFS', IDB_STORE = 'handles';
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = ()=> req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function idbSet(key, val){
+  const db = await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(val, key);
+    tx.oncomplete = ()=>resolve(); tx.onerror = ()=>reject(tx.error);
+  });
+}
+async function idbGet(key){
+  const db = await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx = db.transaction(IDB_STORE,'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = ()=>resolve(req.result); req.onerror = ()=>reject(req.error);
+  });
+}
+function buildStockRegisterAOA(dateStr){
+  const rows = buildStockRegisterRows(dateStr);
+  const aoa = [
+    ["Wine Shop Stock Register — "+fmtDate(dateStr)],
+    ["Barcode","Name","Opening Stock","Cost Price","Sale Price","Today's Sales (Qty)","Closing Stock","Stock Received","Sales Amount ₹"]
+  ];
+  let grand = {opening:0, soldToday:0, closing:0, received:0, salesAmount:0};
+  DB.categories.forEach(cat=>{
+    const catRows = rows.filter(r=>r.category===cat);
+    if(catRows.length===0) return;
+    aoa.push([cat.toUpperCase(), "", "", "", "", "", "", "", ""]);
+    let sub = {opening:0, soldToday:0, closing:0, received:0, salesAmount:0};
+    catRows.forEach(r=>{
+      aoa.push([r.barcode||"", r.name, r.opening, r.costPrice, r.sellPrice, r.soldToday, r.closing, r.received, r.salesAmount]);
+      sub.opening+=r.opening; sub.soldToday+=r.soldToday; sub.closing+=r.closing; sub.received+=r.received; sub.salesAmount+=r.salesAmount;
+    });
+    aoa.push(["", "Subtotal — "+cat, sub.opening, "", "", sub.soldToday, sub.closing, sub.received, sub.salesAmount]);
+    grand.opening+=sub.opening; grand.soldToday+=sub.soldToday; grand.closing+=sub.closing; grand.received+=sub.received; grand.salesAmount+=sub.salesAmount;
+  });
+  const uncategorized = rows.filter(r=>!DB.categories.includes(r.category));
+  if(uncategorized.length){
+    aoa.push(["UNCATEGORIZED", "", "", "", "", "", "", "", ""]);
+    uncategorized.forEach(r=>{
+      aoa.push([r.barcode||"", r.name, r.opening, r.costPrice, r.sellPrice, r.soldToday, r.closing, r.received, r.salesAmount]);
+      grand.opening+=r.opening; grand.soldToday+=r.soldToday; grand.closing+=r.closing; grand.received+=r.received; grand.salesAmount+=r.salesAmount;
+    });
+  }
+  aoa.push(["", "GRAND TOTAL — All Products", grand.opening, "", "", grand.soldToday, grand.closing, grand.received, grand.salesAmount]);
+  return aoa;
+}
+function buildWorkbook(){
+  const wb = XLSX.utils.book_new();
+  const s = (rows)=> XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, s(DB.products), "Products");
+  XLSX.utils.book_append_sheet(wb, s(DB.suppliers), "Suppliers");
+  XLSX.utils.book_append_sheet(wb, s(DB.purchases), "Purchases");
+  XLSX.utils.book_append_sheet(wb, s(DB.sales), "Sales");
+  XLSX.utils.book_append_sheet(wb, s(DB.stockLedger), "StockLedger");
+  XLSX.utils.book_append_sheet(wb, s(DB.expenses), "Expenses");
+  XLSX.utils.book_append_sheet(wb, s(DB.payments), "Payments");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(buildStockRegisterAOA(todayStr())), "StockRegister");
+  XLSX.utils.book_append_sheet(wb, s([{...DB.settings, categories: DB.categories.join(','), expenseCategories: (DB.expenseCategories||DEFAULT_EXPENSE_CATEGORIES).join(',')}]), "Settings");
+  XLSX.utils.book_append_sheet(wb, s([DB.counters]), "Counters");
+  return wb;
+}
+async function writeExcelAuto(){
+  if(!fsFileHandle) return;
+  try{
+    const perm = await fsFileHandle.queryPermission({mode:'readwrite'});
+    if(perm !== 'granted'){ updateExcelPill('reconnect'); return; }
+    const wb = buildWorkbook();
+    const bytes = XLSX.write(wb, {type:'array', bookType:'xlsx'});
+    const writable = await fsFileHandle.createWritable();
+    await writable.write(bytes);
+    await writable.close();
+    setSaveStatus("Saved to Excel ✓");
+    updateExcelPill('on');
+  }catch(e){
+    console.error("Excel auto-save failed", e);
+    setSaveStatus("Excel save failed");
+    updateExcelPill('reconnect');
+  }
+}
+/* ============================= ONLINE/OFFLINE INDICATOR ============================= */
+/* Every sale/purchase/etc. is written to THIS device immediately regardless of internet
+   (localStorage + the local Excel file both save instantly, no network involved) — this
+   pill only tells you whether the CLOUD backups (Drive/Telegram/Live Sync) can reach the
+   internet right now. Going offline for a few hours never loses data on this device; it
+   just means those cloud copies catch up once the connection returns. */
+function updateNetPill(){
+  const pill = document.getElementById('netPill');
+  const text = document.getElementById('netPillText');
+  if(!pill) return;
+  const online = navigator.onLine;
+  pill.classList.toggle('on', online);
+  pill.classList.toggle('off', !online);
+  text.textContent = online ? 'Online' : 'Offline — saving locally only';
+  pill.title = online
+    ? 'Connected — cloud backups (Drive/Telegram/Sync) can run'
+    : 'No internet right now — every change is still saving safely on THIS device; cloud backups will catch up once you\'re back online';
+}
+window.addEventListener('online', updateNetPill);
+window.addEventListener('offline', updateNetPill);
+
+function updateExcelPill(state){
+  const pill = document.getElementById('excelPill');
+  const text = document.getElementById('excelPillText');
+  const banner = document.getElementById('excelReconnectBanner');
+  pill.classList.remove('on','off');
+  if(state==='on'){ pill.classList.add('on'); text.textContent = 'Excel: Connected'; banner.classList.add('hidden'); }
+  else if(state==='reconnect'){ pill.classList.add('off'); text.textContent = 'Excel: Reconnect needed'; banner.classList.remove('hidden'); }
+  else { pill.classList.add('off'); text.textContent = 'Excel: Not Connected'; banner.classList.add('hidden'); }
+  renderExcelStatus();
+}
+function renderExcelStatus(){
+  const el = document.getElementById('excelStatusLine');
+  const helpEl = document.getElementById('fsApiHelp');
+  if(!FS_SUPPORTED){
+    helpEl.textContent = "Your browser doesn't support automatic file saving (this works best in Chrome or Edge). Your data is still auto-saved inside this browser as you work — use \"Download Backup Copy\" regularly to keep an Excel file.";
+    el.textContent = "";
+    return;
+  }
+  helpEl.textContent = "Connect a real Excel file once, and every change you make will be saved into it automatically — no more clicking Save.";
+  if(fsFileHandle){ el.textContent = "Connected file: " + (fsFileHandle.name||"(excel file)"); }
+  else { el.textContent = "Not connected yet. Click \"Connect / Change Excel File\" to choose or create one."; }
+}
+async function connectExcelFile(){
+  if(!FS_SUPPORTED){ toast("Your browser doesn't support this — please use Chrome or Edge, or use Download Backup Copy instead.","err"); return; }
+  try{
+    const handle = await window.showSaveFilePicker({
+      suggestedName: (DB.settings.shopName||'wine_shop').replace(/[^a-z0-9]+/gi,'_') + '.xlsx',
+      types: [{ description:'Excel Workbook', accept: {'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']} }]
+    });
+    fsFileHandle = handle;
+    await idbSet('xlsxHandle', handle);
+    updateExcelPill('on');
+    toast("Excel file connected! Auto-saving from now on.","ok");
+    writeExcelAuto();
+  }catch(e){
+    if(e.name !== 'AbortError') { console.error(e); toast("Could not connect the file.","err"); }
+  }
+}
+document.getElementById('btnConnectExcel').addEventListener('click', connectExcelFile);
+document.getElementById('excelPill').addEventListener('click', ()=>showScreen('settings'));
+document.getElementById('btnReconnectExcel').addEventListener('click', async ()=>{
+  if(!fsFileHandle){ connectExcelFile(); return; }
+  try{
+    const perm = await fsFileHandle.requestPermission({mode:'readwrite'});
+    if(perm==='granted'){ updateExcelPill('on'); toast("Reconnected!","ok"); writeExcelAuto(); }
+    else { toast("Permission not granted.","err"); }
+  }catch(e){ console.error(e); toast("Could not reconnect.","err"); }
+});
+async function tryRestoreExcelHandle(){
+  if(!FS_SUPPORTED) { renderExcelStatus(); return; }
+  try{
+    const handle = await idbGet('xlsxHandle');
+    if(handle){
+      fsFileHandle = handle;
+      const perm = await handle.queryPermission({mode:'readwrite'});
+      updateExcelPill(perm==='granted' ? 'on' : 'reconnect');
+    } else {
+      updateExcelPill('off');
+    }
+  }catch(e){ console.warn("Could not restore Excel handle", e); updateExcelPill('off'); }
+}
+
+/* ============================= EXCEL: MANUAL BACKUP / IMPORT (fallback) ============================= */
+function exportToExcel(){
+  const wb = buildWorkbook();
+  const fname = (DB.settings.shopName||"WineShop").replace(/[^a-z0-9]+/gi,'_') + "_" + todayStr() + ".xlsx";
+  XLSX.writeFile(wb, fname);
+  toast("Backup downloaded: "+fname, "ok");
+}
+function sheetToRows(wb, name){
+  const sheet = wb.Sheets[name];
+  if(!sheet) return [];
+  return XLSX.utils.sheet_to_json(sheet, {defval:""});
+}
+function importFromExcel(file){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const newDB = blankDB();
+      newDB.products = sheetToRows(wb,"Products").map(r=>({...r, id:Number(r.id), costPrice:Number(r.costPrice)||0, sellPrice:Number(r.sellPrice)||0, stockQty:Number(r.stockQty)||0, reorderLevel:Number(r.reorderLevel)||0, barcode:r.barcode||""}));
+      newDB.suppliers = sheetToRows(wb,"Suppliers").map(r=>({...r, id:Number(r.id)}));
+      newDB.purchases = sheetToRows(wb,"Purchases").map(r=>({...r, id:Number(r.id), qty:Number(r.qty)||0, costPrice:Number(r.costPrice)||0, total:Number(r.total)||0, amountPaid: r.amountPaid!==""&&r.amountPaid!=null?Number(r.amountPaid):Number(r.total)||0}));
+      newDB.sales = sheetToRows(wb,"Sales").map(r=>({...r, id:Number(r.id), qty:Number(r.qty)||0, sellPrice:Number(r.sellPrice)||0, costPriceAtSale:Number(r.costPriceAtSale)||0, total:Number(r.total)||0, customerName:r.customerName||"", amountPaid: r.amountPaid!==""&&r.amountPaid!=null?Number(r.amountPaid):(r.paymentMode==='Credit'?0:Number(r.total)||0)}));
+      newDB.stockLedger = sheetToRows(wb,"StockLedger").map(r=>({...r, id:Number(r.id), qtyChange:Number(r.qtyChange)||0, balanceAfter:Number(r.balanceAfter)||0}));
+      newDB.expenses = sheetToRows(wb,"Expenses").map(r=>({...r, id:Number(r.id), amount:Number(r.amount)||0}));
+      newDB.payments = sheetToRows(wb,"Payments").map(r=>({...r, id:Number(r.id), amount:Number(r.amount)||0}));
+      const settingsRows = sheetToRows(wb,"Settings");
+      if(settingsRows[0]){
+        const sr = settingsRows[0];
+        newDB.settings = {
+          shopName: sr.shopName||"My Wine Shop", currency: sr.currency||"₹", lowStockDefault: Number(sr.lowStockDefault)||6,
+          cashInHand: Number(sr.cashInHand)||0, bankBalance: Number(sr.bankBalance)||0,
+          telegramBotToken: sr.telegramBotToken||"", telegramChatId: sr.telegramChatId||"", telegramEnabled: !!sr.telegramEnabled,
+          lastTgSend2pm: sr.lastTgSend2pm||"", lastTgSend9pm: sr.lastTgSend9pm||"",
+          gdriveClientId: sr.gdriveClientId||"", gdriveEnabled: !!sr.gdriveEnabled, gdriveFileId: sr.gdriveFileId||"",
+          appPin: sr.appPin||"", firebaseConfigJson: sr.firebaseConfigJson||"", syncEnabled: !!sr.syncEnabled
+        };
+        newDB.categories = sr.categories ? String(sr.categories).split(',').map(s=>s.trim()).filter(Boolean) : DEFAULT_CATEGORIES.slice();
+        newDB.expenseCategories = sr.expenseCategories ? String(sr.expenseCategories).split(',').map(s=>s.trim()).filter(Boolean) : DEFAULT_EXPENSE_CATEGORIES.slice();
+      }
+      const counterRows = sheetToRows(wb,"Counters");
+      if(counterRows[0]){
+        const cr = counterRows[0];
+        newDB.counters = {};
+        ['product','supplier','purchase','sale','ledger','expense','payment','invoicePurchase','invoiceSale'].forEach(k=>{ newDB.counters[k] = Number(cr[k])||0; });
+      }
+      else {
+        const maxId = (arr)=> arr.reduce((m,x)=>Math.max(m, Number(x.id)||0), 0);
+        newDB.counters = { product:maxId(newDB.products), supplier:maxId(newDB.suppliers), purchase:maxId(newDB.purchases), sale:maxId(newDB.sales), ledger:maxId(newDB.stockLedger), expense:maxId(newDB.expenses), payment:maxId(newDB.payments), invoicePurchase:0, invoiceSale:0 };
+      }
+      DB = newDB;
+      toast("Excel file loaded successfully!","ok");
+      sessionStorage.removeItem('wsmUnlocked');
+      saveToLocalStorage();
+      renderAll();
+      checkAccessLock();
+      writeExcelAuto();
+    }catch(err){
+      console.error(err);
+      toast("Could not read this Excel file. Please check the format.","err");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+document.getElementById('fileInput').addEventListener('change', function(){
+  if(this.files && this.files[0]){
+    importFromExcel(this.files[0]);
+    this.value = "";
+  }
+});
+document.getElementById('btnExport2').addEventListener('click', exportToExcel);
+document.getElementById('btnImport2').addEventListener('click', ()=>document.getElementById('fileInput').click());
+
+/* ============================= RENDER ALL ============================= */
+function renderAll(){
+  document.getElementById('shopNameDisplay').textContent = DB.settings.shopName;
+  populateProductSelect(document.getElementById('saleProductPicker'), "-- Select product --");
+  populateProductSelect(document.getElementById('lossProduct'), "-- Select product --");
+  populateSupplierSelect(document.getElementById('purchaseSupplier'));
+  populateProductDatalist();
+  renderStatStrip();
+  renderStock();
+  renderSuppliers();
+  renderPurchaseGrid();
+  renderPurchaseHistory();
+  renderSaleHistory();
+  renderLossHistory();
+  renderSettings();
+}
+
+/* ============================= LIVE MULTI-DEVICE SYNC (FIREBASE) ============================= */
+/* Optional. Off by default. When the owner pastes a Firebase config in Settings
+   and signs in, the whole DB object is kept as ONE document in Firestore and
+   synced in real time to every signed-in device. This is deliberately a
+   simple "whole document" sync (not per-record), which means two people
+   editing at the exact same instant on two devices could have the slower
+   write overwrite the faster one — acceptable for a small shop's pace of
+   billing, and far simpler/safer than per-record merge logic. Local Excel +
+   Google Drive + Telegram backups all keep working unchanged regardless. */
+let fbApp = null, fbAuth = null, fbDb = null, fbUnsub = null, fbSuppressNextSnapshot = false, fbPushTimer = null;
+const FIRESTORE_DOC_PATH = ["shopData","main"];
+
+function getFirebaseConfig(){
+  const raw = String(DB.settings.firebaseConfigJson||"").trim();
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch(e){ return null; }
+}
+
+function initFirebaseIfNeeded(){
+  if(DEMO_MODE) return false; // disabled in demo
+  if(fbApp) return true;
+  const cfg = getFirebaseConfig();
+  if(!cfg || typeof firebase === 'undefined'){ return false; }
+  try{
+    fbApp = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(cfg);
+    fbAuth = firebase.auth();
+    fbDb = firebase.firestore();
+    try{ fbDb.enablePersistence({synchronizeTabs:true}).catch(()=>{}); }catch(e){}
+    fbAuth.onAuthStateChanged(onFirebaseAuthChanged);
+    return true;
+  }catch(e){
+    console.error("Firebase init failed", e);
+    setFirebaseStatus("Couldn't connect — check the pasted config is valid JSON from your Firebase project.", true);
+    return false;
+  }
+}
+
+function onFirebaseAuthChanged(user){
+  const loginEl = document.getElementById('loginScreen');
+  if(user){
+    loginEl.style.display = 'none';
+    setFirebaseStatus("Signed in as "+user.email+" — live sync is on.");
+    document.getElementById('btnFirebaseSignOut').classList.remove('hidden');
+    document.getElementById('btnFirebaseDisable').classList.remove('hidden');
+    startFirestoreListener();
+  } else {
+    stopFirestoreListener();
+    if(DB.settings.syncEnabled){
+      loginEl.style.display = 'flex';
+      setTimeout(()=>document.getElementById('loginEmail')?.focus(), 50);
+    }
+    document.getElementById('btnFirebaseSignOut')?.classList.add('hidden');
+    document.getElementById('btnFirebaseDisable')?.classList.add('hidden');
+  }
+}
+
+function startFirestoreListener(){
+  if(!fbDb || fbUnsub) return;
+  const ref = fbDb.collection(FIRESTORE_DOC_PATH[0]).doc(FIRESTORE_DOC_PATH[1]);
+  fbUnsub = ref.onSnapshot((snap)=>{
+    if(fbSuppressNextSnapshot){ fbSuppressNextSnapshot = false; return; }
+    const data = snap.data();
+    if(!data || !data.db) return; // nothing synced yet — our next push will seed it
+    try{
+      DB = JSON.parse(data.db);
+      saveToLocalStorage();
+      renderAll();
+      checkAccessLock();
+      setFirebaseStatus("Synced "+(data.updatedByEmail?("— last update by "+data.updatedByEmail):"")+" · "+new Date().toLocaleTimeString('en-IN'));
+    }catch(e){ console.error("Firestore sync parse failed", e); }
+  }, (err)=>{
+    console.error("Firestore listener error", err);
+    setFirebaseStatus("Sync connection lost — check your internet. Local data is safe.", true);
+  });
+}
+function stopFirestoreListener(){ if(fbUnsub){ fbUnsub(); fbUnsub = null; } }
+
+function scheduleFirestorePush(){
+  if(DEMO_MODE) return false; // disabled in demo
+  if(!DB.settings.syncEnabled || !fbDb || !fbAuth || !fbAuth.currentUser) return;
+  clearTimeout(fbPushTimer);
+  fbPushTimer = setTimeout(pushToFirestore, 1500);
+}
+async function pushToFirestore(){
+  if(DEMO_MODE) return false; // disabled in demo
+  if(!fbDb || !fbAuth || !fbAuth.currentUser) return;
+  try{
+    fbSuppressNextSnapshot = true; // our own write will re-trigger onSnapshot; ignore that one echo
+    const ref = fbDb.collection(FIRESTORE_DOC_PATH[0]).doc(FIRESTORE_DOC_PATH[1]);
+    await ref.set({ db: JSON.stringify(DB), updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedByEmail: fbAuth.currentUser.email });
+    setFirebaseStatus("Synced to all devices · "+new Date().toLocaleTimeString('en-IN'));
+  }catch(e){
+    console.error("Firestore push failed", e);
+    setFirebaseStatus("Couldn't push update to sync — will retry on next change. Local data is safe.", true);
+  }
+}
+function setFirebaseStatus(msg, isErr){
+  const el = document.getElementById('firebaseStatusLine');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = isErr ? '#b00020' : '';
+}
+async function tryAutoConnectFirebase(){
+  if(DEMO_MODE) return false; // disabled in demo
+  if(!DB.settings.syncEnabled) return;
+  if(!initFirebaseIfNeeded()) return;
+  // onAuthStateChanged fires on its own once Firebase resolves any existing session;
+  // if there isn't one, it will show the login screen.
+}
+
+document.getElementById('btnSaveFirebaseConfig').addEventListener('click', ()=>{
+  const raw = document.getElementById('setFirebaseConfig').value.trim();
+  if(!raw){ toast("Paste your Firebase config first","err"); return; }
+  try{ JSON.parse(raw); }catch(e){ toast("That doesn't look like valid JSON — copy it exactly from the Firebase console","err"); return; }
+  DB.settings.firebaseConfigJson = raw;
+  DB.settings.syncEnabled = true;
+  saveToLocalStorage();
+  toast("Config saved — connecting…","ok");
+  fbApp = null; // force re-init with the new config
+  if(initFirebaseIfNeeded()){
+    document.getElementById('loginScreen').style.display = 'flex';
+  } else {
+    toast("Couldn't connect — double check the config","err");
+  }
+});
+document.getElementById('btnFirebaseSignOut').addEventListener('click', ()=>{
+  if(fbAuth) fbAuth.signOut();
+});
+document.getElementById('btnFirebaseDisable').addEventListener('click', ()=>{
+  if(!confirm("Turn off live sync? Each device will go back to its own local copy.")) return;
+  DB.settings.syncEnabled = false;
+  stopFirestoreListener();
+  if(fbAuth) fbAuth.signOut();
+  saveToLocalStorage();
+  setFirebaseStatus("Live sync turned off. Local-only mode.");
+  toast("Live sync turned off","ok");
+});
+document.getElementById('loginSubmit').addEventListener('click', ()=>{
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if(!initFirebaseIfNeeded()){ errEl.textContent = "Sync isn't set up yet — add your Firebase config in Settings first."; return; }
+  fbAuth.signInWithEmailAndPassword(email, pw).catch(err=>{ errEl.textContent = err.message || "Sign-in failed"; });
+});
+document.getElementById('loginShowCreateOwner').addEventListener('click', (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if(!email || !pw || pw.length<6){ errEl.textContent = "Enter an email and a password of at least 6 characters above, then tap this link."; return; }
+  if(!initFirebaseIfNeeded()){ errEl.textContent = "Sync isn't set up yet — add your Firebase config in Settings first."; return; }
+  fbAuth.createUserWithEmailAndPassword(email, pw).catch(err=>{ errEl.textContent = err.message || "Couldn't create the login"; });
+});
+
+/* ============================= ACCESS LOCK ============================= */
+/* Lightweight PIN gate so a bare link isn't the only thing standing between
+   anyone on the internet and this shop's sales/stock data. This is a
+   deterrent, not real authentication (everything still runs client-side) —
+   set a PIN in Settings to turn it on; leave it blank to leave the app open. */
+function checkAccessLock(){
+  const lockEl = document.getElementById('lockScreen');
+  if(DB.settings.syncEnabled){ lockEl.style.display = 'none'; return; } // real sign-in (loginScreen) replaces the PIN once sync is on
+  const pin = String(DB.settings.appPin||"").trim();
+  if(!pin){ lockEl.style.display = 'none'; return; }
+  if(sessionStorage.getItem('wsmUnlocked') === pin){ lockEl.style.display = 'none'; return; }
+  lockEl.style.display = 'flex';
+  const input = document.getElementById('lockPinInput');
+  const err = document.getElementById('lockPinError');
+  input.value = ''; err.textContent = ''; setTimeout(()=>input.focus(), 50);
+  function tryUnlock(){
+    if(String(input.value||"").trim() === pin){
+      sessionStorage.setItem('wsmUnlocked', pin);
+      lockEl.style.display = 'none';
+    } else {
+      err.textContent = 'Wrong PIN — try again.';
+      input.value=''; input.focus();
+    }
+  }
+  document.getElementById('lockPinSubmit').onclick = tryUnlock;
+  input.onkeydown = (e)=>{ if(e.key==='Enter') tryUnlock(); };
+}
+
+/* ============================= BOOTSTRAP ============================= */
+(async function init(){
+  if(!loadFromLocalStorage()){
+    seedSampleData();
+  }
+  renderAll();
+  showScreen('sell');
+  checkAccessLock();
+  updateNetPill();
+  await tryRestoreExcelHandle();
+  setTimeout(tryAutoConnectGDrive, 1200); // give the Google Identity Services script a moment to finish loading
+  setTimeout(tryAutoConnectFirebase, 800);
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(e=>console.warn('Service worker registration failed', e));
+  }
+})();
+</script>
+<script src="insights.js"></script>
+<footer class="note">SelfSense — retail POS + forecasting demo. All data is synthetic. Production app is private and separate.</footer>
+</body>
+</html>
