@@ -44,7 +44,7 @@
     const maxV = Math.max(1, ...hVals, ...hi, ...yhat);
     const xOf = (i) => padL + (n > 1 ? (i * innerW) / (n - 1) : 0);
     const yOf = (v) => padT + innerH - (v / maxV) * innerH;
-    let s = `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="forecast chart">`;
+    let s = `<svg viewBox="0 0 ${width} ${height}" width="100%" style="display:block;min-width:600px;height:auto;" role="img" aria-label="forecast chart">`;
     for (let g = 0; g <= 4; g++) {
       const v = (maxV * g) / 4, y = yOf(v);
       s += `<line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" stroke="#e6dcd0"/>`;
